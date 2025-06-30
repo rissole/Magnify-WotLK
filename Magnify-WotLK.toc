@@ -1,5 +1,5 @@
 ## Interface: 30300
-## Title: Magnify-WotLK
+## Title: Magnify |cff1784d1(WotLK)|r
 ## Notes: World Map Zoom Addon for 3.3.5a
 ## Version: 1.0
 ## Author: rissole
