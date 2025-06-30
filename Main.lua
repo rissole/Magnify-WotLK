@@ -6,7 +6,10 @@ local MINIMODE_MIN_ZOOM = 1.0
 local MINIMODE_MAX_ZOOM = 10.0
 local MINIMODE_ZOOM_STEP = 0.1
 
-local function AdjustInverseScales()
+local function MagnifySetDetailFrameScale(num)
+	WorldMapDetailFrame:SetScale(num)
+
+	-- Adjust frames to inversely scale with the detail frame so they maintain relative screen size
 	WorldMapFrameAreaFrame:SetScale(1/WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size)
 	WorldMapPOIFrame:SetScale(1/WORLDMAP_SETTINGS.size)
 	WorldMapPlayer:SetScale(1/WORLDMAP_SETTINGS.size)
@@ -46,7 +49,7 @@ local function MagnifySetupWorldMapFrame()
 
 	WorldMapScrollFrame:SetScale(WORLDMAP_SETTINGS.size);
 	
-	WorldMapDetailFrame:SetScale(1)
+	MagnifySetDetailFrameScale(1)
 	WorldMapDetailFrame:SetAllPoints(WorldMapScrollFrame)
 	
 	WorldMapButton:SetScale(1)
@@ -58,8 +61,6 @@ local function MagnifySetupWorldMapFrame()
 
 	WorldMapQuestScrollFrame:SetPoint("TOPLEFT", WorldMapScrollFrame, "TOPRIGHT", 6, 0)
 	WorldMapQuestDetailScrollFrame:SetPoint("BOTTOMLEFT", WorldMapScrollFrame, "BOTTOMLEFT", 20, -208)
-
-	AdjustInverseScales()
 end
 
 local function WorldMapScrollFrame_OnPan(cursorX, cursorY)
@@ -311,8 +312,7 @@ local function WorldMapScrollFrame_OnMouseWheel()
 	newScale = max(MIN_ZOOM, newScale)
 	newScale = min(MAX_ZOOM, newScale)
 
-	WorldMapDetailFrame:SetScale(newScale)
-	AdjustInverseScales()
+	MagnifySetDetailFrameScale(newScale)
 
 	this.maxX = ((WorldMapDetailFrame:GetWidth() * newScale) - this:GetWidth()) / newScale
 	this.maxY = ((WorldMapDetailFrame:GetHeight() * newScale) - this:GetHeight()) / newScale
@@ -352,7 +352,7 @@ local function WorldMapButton_OnMouseUp()
 	if not WorldMapScrollFrame.moved then
 		WorldMapButton_OnClick(WorldMapButton, arg1)
 
-		WorldMapDetailFrame:SetScale(MIN_ZOOM)
+		MagnifySetDetailFrameScale(MIN_ZOOM)
 
 		WorldMapScrollFrame:SetHorizontalScroll(0)
 		WorldMapScrollFrame:SetVerticalScroll(0)
