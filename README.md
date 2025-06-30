@@ -14,3 +14,8 @@ Magnify is a World of Warcraft WotLK (3.3.5a) add-on which allows the user to zo
 - :exclamation: ElvUI - works, but you must:
   - Disable the Map (/ec -> Maps -> Map tab -> Uncheck 'Enable')
   - Disable the Map skin (/ec -> Skins -> Uncheck 'Map')
+
+**TODO**
+
+- Test icon scaling and positioning: raid/party/battleground/bg flag/corpse/death release location/vehicle
+- Shrink the POI icons (quest objectives) when zoomed

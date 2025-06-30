@@ -14,7 +14,35 @@ local function MagnifySetDetailFrameScale(num)
 	-- Adjust frames to inversely scale with the detail frame so they maintain relative screen size
 	WorldMapFrameAreaFrame:SetScale(1/WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size)
 	WorldMapPOIFrame:SetScale(1/WORLDMAP_SETTINGS.size)
+
 	WorldMapPlayer:SetScale(1/WorldMapDetailFrame:GetScale())
+	WorldMapDeathRelease:SetScale(1/WorldMapDetailFrame:GetScale())
+	WorldMapCorpse:SetScale(1/WorldMapDetailFrame:GetScale())
+	local numFlags = GetNumBattlefieldFlagPositions()
+	for i=1, numFlags do
+		local flagFrameName = "WorldMapFlag"..i;
+		if (_G[flagFrameName]) then
+			_G[flagFrameName]:SetScale(1/WorldMapDetailFrame:GetScale())
+		end
+	end
+
+	for i=1, MAX_PARTY_MEMBERS do
+		if (_G["WorldMapParty"..i]) then
+			_G["WorldMapParty"..i]:SetScale(1/WorldMapDetailFrame:GetScale())
+		end
+	end
+
+	for i=1, MAX_RAID_MEMBERS do
+		if (_G["WorldMapRaid"..i]) then
+			_G["WorldMapRaid"..i]:SetScale(1/WorldMapDetailFrame:GetScale())
+		end
+	end
+
+	for i=1, #MAP_VEHICLES do
+		if (MAP_VEHICLES[i]) then
+			MAP_VEHICLES[i]:SetScale(1/WorldMapDetailFrame:GetScale())
+		end
+	end
 end
 
 local function MagnifySetupWorldMapFrame()
@@ -131,8 +159,8 @@ local function Magnify_WorldMapButton_OnUpdate(self, elapsed)
 		WorldMapPing:Hide();
 		WorldMapPlayer:Hide();
 	else
-		playerX = playerX * WorldMapDetailFrame:GetWidth()*WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size
-		playerY = -playerY * WorldMapDetailFrame:GetHeight()*WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size
+		playerX = playerX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size
+		playerY = -playerY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size
 		PositionWorldMapArrowFrame("CENTER", "WorldMapDetailFrame", "TOPLEFT", playerX, playerY);
 
 		WorldMapPlayer:SetAllPoints(PlayerArrowFrame);
@@ -154,8 +182,8 @@ local function Magnify_WorldMapButton_OnUpdate(self, elapsed)
 			if ( (partyX == 0 and partyY == 0) or UnitIsUnit(unit, "player") ) then
 				partyMemberFrame:Hide();
 			else
-				partyX = partyX * WorldMapDetailFrame:GetWidth();
-				partyY = -partyY * WorldMapDetailFrame:GetHeight();
+				partyX = partyX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size;
+				partyY = -partyY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size;
 				partyMemberFrame:SetPoint("CENTER", "WorldMapDetailFrame", "TOPLEFT", partyX, partyY);
 				partyMemberFrame.name = nil;
 				partyMemberFrame.unit = unit;
@@ -170,8 +198,8 @@ local function Magnify_WorldMapButton_OnUpdate(self, elapsed)
 			if ( partyX == 0 and partyY == 0 ) then
 				partyMemberFrame:Hide();
 			else
-				partyX = partyX * WorldMapDetailFrame:GetWidth();
-				partyY = -partyY * WorldMapDetailFrame:GetHeight();
+				partyX = partyX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size;
+				partyY = -partyY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size;
 				partyMemberFrame:SetPoint("CENTER", "WorldMapDetailFrame", "TOPLEFT", partyX, partyY);
 				partyMemberFrame:Show();
 			end
@@ -185,8 +213,8 @@ local function Magnify_WorldMapButton_OnUpdate(self, elapsed)
 		if ( partyX == 0 and partyY == 0 ) then
 			partyMemberFrame:Hide();
 		else
-			partyX = partyX * WorldMapDetailFrame:GetWidth();
-			partyY = -partyY * WorldMapDetailFrame:GetHeight();
+			partyX = partyX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size;
+			partyY = -partyY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size;
 			partyMemberFrame:SetPoint("CENTER", "WorldMapDetailFrame", "TOPLEFT", partyX, partyY);
 			partyMemberFrame.name = name;
 			partyMemberFrame.unit = nil;
@@ -203,8 +231,8 @@ local function Magnify_WorldMapButton_OnUpdate(self, elapsed)
 		if ( flagX == 0 and flagY == 0 ) then
 			flagFrame:Hide();
 		else
-			flagX = flagX * WorldMapDetailFrame:GetWidth();
-			flagY = -flagY * WorldMapDetailFrame:GetHeight();
+			flagX = flagX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size;
+			flagY = -flagY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size;
 			flagFrame:SetPoint("CENTER", "WorldMapDetailFrame", "TOPLEFT", flagX, flagY);
 			local flagTexture = _G[flagFrameName.."Texture"];
 			flagTexture:SetTexture("Interface\\WorldStateFrame\\"..flagToken);
@@ -221,8 +249,8 @@ local function Magnify_WorldMapButton_OnUpdate(self, elapsed)
 	if ( corpseX == 0 and corpseY == 0 ) then
 		WorldMapCorpse:Hide();
 	else
-		corpseX = corpseX * WorldMapDetailFrame:GetWidth();
-		corpseY = -corpseY * WorldMapDetailFrame:GetHeight();
+		corpseX = corpseX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size;
+		corpseY = -corpseY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size;
 		
 		WorldMapCorpse:SetPoint("CENTER", "WorldMapDetailFrame", "TOPLEFT", corpseX, corpseY);
 		WorldMapCorpse:Show();
@@ -233,8 +261,8 @@ local function Magnify_WorldMapButton_OnUpdate(self, elapsed)
 	if ((deathReleaseX == 0 and deathReleaseY == 0) or UnitIsGhost("player")) then
 		WorldMapDeathRelease:Hide();
 	else
-		deathReleaseX = deathReleaseX * WorldMapDetailFrame:GetWidth();
-		deathReleaseY = -deathReleaseY * WorldMapDetailFrame:GetHeight();
+		deathReleaseX = deathReleaseX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size;
+		deathReleaseY = -deathReleaseY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size;
 		
 		WorldMapDeathRelease:SetPoint("CENTER", "WorldMapDetailFrame", "TOPLEFT", deathReleaseX, deathReleaseY);
 		WorldMapDeathRelease:Show();
@@ -259,8 +287,8 @@ local function Magnify_WorldMapButton_OnUpdate(self, elapsed)
 		local vehicleX, vehicleY, unitName, isPossessed, vehicleType, orientation, isPlayer, isAlive = GetBattlefieldVehicleInfo(i);
 		if ( vehicleX and isAlive and not isPlayer and VEHICLE_TEXTURES[vehicleType]) then
 			local mapVehicleFrame = MAP_VEHICLES[i];
-			vehicleX = vehicleX * WorldMapDetailFrame:GetWidth();
-			vehicleY = -vehicleY * WorldMapDetailFrame:GetHeight();
+			vehicleX = vehicleX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size;
+			vehicleY = -vehicleY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size;
 			mapVehicleFrame.texture:SetRotation(orientation);
 			mapVehicleFrame.texture:SetTexture(WorldMap_GetVehicleTexture(vehicleType, isPossessed));
 			mapVehicleFrame:SetPoint("CENTER", "WorldMapDetailFrame", "TOPLEFT", vehicleX, vehicleY);
