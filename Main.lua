@@ -2,8 +2,8 @@ local MIN_ZOOM = 1.0
 local MAX_ZOOM = 4.0
 local ZOOM_STEP = 0.2
 
-local MINIMODE_MIN_ZOOM = 0.5
-local MINIMODE_MAX_ZOOM = 10
+local MINIMODE_MIN_ZOOM = 1.0
+local MINIMODE_MAX_ZOOM = 10.0
 local MINIMODE_ZOOM_STEP = 0.1
 
 local function AdjustInverseScales()
