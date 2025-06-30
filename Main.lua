@@ -1,3 +1,5 @@
+local ADDON_NAME = "Magnify-WotLK"
+
 local MIN_ZOOM = 1.0
 local MAX_ZOOM = 4.0
 local ZOOM_STEP = 0.2
@@ -12,11 +14,11 @@ local function MagnifySetDetailFrameScale(num)
 	-- Adjust frames to inversely scale with the detail frame so they maintain relative screen size
 	WorldMapFrameAreaFrame:SetScale(1/WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size)
 	WorldMapPOIFrame:SetScale(1/WORLDMAP_SETTINGS.size)
-	WorldMapPlayer:SetScale(1/WORLDMAP_SETTINGS.size)
+	WorldMapPlayer:SetScale(1/WorldMapDetailFrame:GetScale())
 end
 
 local function MagnifySetupWorldMapFrame()
-	_G["WorldMapScrollFrameScrollBar"]:Hide()
+	WorldMapScrollFrameScrollBar:Hide()
 	WorldMapFrame:EnableMouse(true)
 	WorldMapScrollFrame:EnableMouse(true)
 	WorldMapScrollFrame.panning = false
@@ -129,14 +131,13 @@ local function Magnify_WorldMapButton_OnUpdate(self, elapsed)
 		WorldMapPing:Hide();
 		WorldMapPlayer:Hide();
 	else
-		playerX = playerX * WorldMapDetailFrame:GetWidth()
-		playerY = -playerY * WorldMapDetailFrame:GetHeight()
-		PositionWorldMapArrowFrame("CENTER", "WorldMapDetailFrame", "TOPLEFT", playerX*WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size, playerY*WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size);
-		ShowWorldMapArrowFrame(1);
+		playerX = playerX * WorldMapDetailFrame:GetWidth()*WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size
+		playerY = -playerY * WorldMapDetailFrame:GetHeight()*WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size
+		PositionWorldMapArrowFrame("CENTER", "WorldMapDetailFrame", "TOPLEFT", playerX, playerY);
 
-		-- Position clear button to detect mouseovers
+		WorldMapPlayer:SetAllPoints(PlayerArrowFrame);
+		WorldMapPlayer.Icon:SetRotation(PlayerArrowFrame:GetFacing())
 		WorldMapPlayer:Show();
-		WorldMapPlayer:SetPoint("CENTER", "WorldMapDetailFrame", "TOPLEFT", playerX, playerY);
 	end
 
 	--Position groupmates
@@ -372,14 +373,16 @@ local function MagnifyOnFirstLoad()
 
 	WorldMapFrameAreaFrame:SetPoint("TOP", WorldMapScrollFrame, "TOP", 0, -10)
 
+	-- Not worth getting this ugly ping working
 	WorldMapPing.Show = function() return end
 	WorldMapPing:SetModelScale(0)
-	WorldMapPlayer.Icon = WorldMapPlayer:CreateTexture('WorldMapPlayerIcon', 'ARTWORK')
-	WorldMapPlayer.Icon:SetWidth(24)
-	WorldMapPlayer.Icon:SetHeight(24)
-	WorldMapPlayer.Icon:SetPoint('CENTER', WorldMapPlayer)
-	WorldMapPlayer.Icon:SetTexture('Interface\\AddOns\\Magnify\\assets\\WorldMapArrow')
-	WorldMapPlayer.Icon:SetTexCoord(0, 0, 1, 1)
+
+	-- Add higher definition arrow that will get masked correctly on pan
+	-- (Default player arrow stays visible even if you pan it to be off the map)
+	WorldMapPlayer.Icon = WorldMapPlayer:CreateTexture(nil, 'ARTWORK')
+	WorldMapPlayer.Icon:SetSize(36, 36)
+	WorldMapPlayer.Icon:SetPoint("CENTER", 0, 0)
+	WorldMapPlayer.Icon:SetTexture('Interface\\AddOns\\'..ADDON_NAME..'\\assets\\WorldMapArrow')
 	
 	local original_WorldMapFrame_SetFullMapView = WorldMapFrame_SetFullMapView;
 	_G['WorldMapFrame_SetFullMapView'] = function()
@@ -446,7 +449,7 @@ end
 
 
 local function OnEvent(self, event, addonName)
-    if event == "ADDON_LOADED" and addonName == "Magnify-WotLK" then
+    if event == "ADDON_LOADED" and addonName == ADDON_NAME then
 		MagnifyOnFirstLoad()
     end
 end
