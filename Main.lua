@@ -162,6 +162,7 @@ local function Magnify_WorldMapButton_OnUpdate(self, elapsed)
 		playerX = playerX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size
 		playerY = -playerY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size
 		PositionWorldMapArrowFrame("CENTER", "WorldMapDetailFrame", "TOPLEFT", playerX, playerY);
+		ShowWorldMapArrowFrame(nil);
 
 		WorldMapPlayer:SetAllPoints(PlayerArrowFrame);
 		WorldMapPlayer.Icon:SetRotation(PlayerArrowFrame:GetFacing())
