@@ -8,6 +8,19 @@ local MINIMODE_MIN_ZOOM = 1.0
 local MINIMODE_MAX_ZOOM = 10.0
 local MINIMODE_ZOOM_STEP = 0.1
 
+local function UpdatePointRelativeTo(frame, newRelativeFrame)
+	local currentPoint, _currentRelativeFrame, currentRelativePoint, currentOffsetX, currentOffsetY = frame:GetPoint()
+	frame:ClearAllPoints()
+	frame:SetPoint(currentPoint, newRelativeFrame, currentRelativePoint, currentOffsetX, currentOffsetY)
+end
+
+local function GetElvUI()
+	if ElvUI and ElvUI[1] then
+		return ElvUI[1]
+	end
+	return nil
+end
+
 local function MagnifySetDetailFrameScale(num)
 	WorldMapDetailFrame:SetScale(num)
 
@@ -42,6 +55,14 @@ local function MagnifySetDetailFrameScale(num)
 		if (MAP_VEHICLES[i]) then
 			MAP_VEHICLES[i]:SetScale(1/WorldMapDetailFrame:GetScale())
 		end
+	end
+end
+
+local function ElvUI_SetupWorldMapFrame()
+	local worldMap = GetElvUI():GetModule("WorldMap")
+	
+	if (worldMap and worldMap.coordsHolder and worldMap.coordsHolder.playerCoords) then
+		UpdatePointRelativeTo(worldMap.coordsHolder.playerCoords, WorldMapScrollFrame)
 	end
 end
 
@@ -91,6 +112,11 @@ local function MagnifySetupWorldMapFrame()
 
 	WorldMapQuestScrollFrame:SetPoint("TOPLEFT", WorldMapScrollFrame, "TOPRIGHT", 6, 0)
 	WorldMapQuestDetailScrollFrame:SetPoint("BOTTOMLEFT", WorldMapScrollFrame, "BOTTOMLEFT", 20, -208)
+
+	
+	if (GetElvUI()) then
+		ElvUI_SetupWorldMapFrame()
+	end
 end
 
 local function WorldMapScrollFrame_OnPan(cursorX, cursorY)
@@ -475,7 +501,6 @@ local function MagnifyOnFirstLoad()
 		MagnifySetupWorldMapFrame()
 	end)
 end
-
 
 local function OnEvent(self, event, addonName)
     if event == "ADDON_LOADED" and addonName == ADDON_NAME then
