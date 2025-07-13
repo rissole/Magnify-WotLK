@@ -57,7 +57,6 @@ local function MagnifySetDetailFrameScale(num)
     WorldMapDetailFrame:SetScale(num)
 
     -- Adjust frames to inversely scale with the detail frame so they maintain relative screen size
-    WorldMapFrameAreaFrame:SetScale(1 / WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size)
     WorldMapPOIFrame:SetScale(1 / WORLDMAP_SETTINGS.size)
     WorldMapBlobFrame:SetScale(num)
 
