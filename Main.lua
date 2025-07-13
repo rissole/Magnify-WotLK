@@ -21,12 +21,20 @@ local function GetElvUI()
 	return nil
 end
 
+local function updateBlobFrame()
+	if ( WORLDMAP_SETTINGS.selectedQuest ) then
+		WorldMapBlobFrame:DrawQuestBlob(WORLDMAP_SETTINGS.selectedQuestId, false);
+		WorldMapBlobFrame:DrawQuestBlob(WORLDMAP_SETTINGS.selectedQuestId, true);
+	end
+end
+
 local function MagnifySetDetailFrameScale(num)
 	WorldMapDetailFrame:SetScale(num)
 
 	-- Adjust frames to inversely scale with the detail frame so they maintain relative screen size
 	WorldMapFrameAreaFrame:SetScale(1/WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size)
 	WorldMapPOIFrame:SetScale(1/WORLDMAP_SETTINGS.size)
+	WorldMapBlobFrame:SetScale(num)
 
 	WorldMapPlayer:SetScale(1/WorldMapDetailFrame:GetScale())
 	WorldMapDeathRelease:SetScale(1/WorldMapDetailFrame:GetScale())
@@ -130,6 +138,11 @@ local function MagnifySetupWorldMapFrame()
 	WorldMapButton:SetParent(WorldMapDetailFrame)
 
 	WorldMapPOIFrame:SetParent(WorldMapDetailFrame)
+	WorldMapBlobFrame:SetParent(WorldMapDetailFrame)
+	WorldMapBlobFrame:ClearAllPoints()
+	WorldMapBlobFrame:SetAllPoints(WorldMapDetailFrame)
+	updateBlobFrame()
+
 	WorldMapPlayer:SetParent(WorldMapDetailFrame)
 
 	UpdatePointRelativeTo(WorldMapQuestScrollFrame, WorldMapScrollFrame);
@@ -157,6 +170,7 @@ local function WorldMapScrollFrame_OnPan(cursorX, cursorY)
 		y = max(0, dY + WorldMapScrollFrame.y)
 		y = min(y, WorldMapScrollFrame.maxY)
 		WorldMapScrollFrame:SetVerticalScroll(y)
+		updateBlobFrame()
 	end
 end
 
@@ -407,6 +421,7 @@ local function WorldMapScrollFrame_OnMouseWheel()
 
 	this:SetHorizontalScroll(newScrollH)
 	this:SetVerticalScroll(newScrollV)
+	updateBlobFrame()
 end
 
 local function WorldMapButton_OnMouseDown()
@@ -433,6 +448,7 @@ local function WorldMapButton_OnMouseUp()
 
 		WorldMapScrollFrame:SetHorizontalScroll(0)
 		WorldMapScrollFrame:SetVerticalScroll(0)
+		updateBlobFrame()
 
 		WorldMapScrollFrame.zoomedIn = false
 	end
@@ -465,20 +481,20 @@ local function MagnifyOnFirstLoad()
 	hooksecurefunc("WorldMap_ToggleSizeDown", MagnifySetupWorldMapFrame);
 	hooksecurefunc("WorldMap_ToggleSizeUp", MagnifySetupWorldMapFrame);
 
-	_G["WorldMapQuestShowObjectives_AdjustPosition"] = function ()
+	hooksecurefunc("WorldMapQuestShowObjectives_AdjustPosition", function ()
 		if ( WORLDMAP_SETTINGS.size == WORLDMAP_WINDOWED_SIZE ) then
 			WorldMapQuestShowObjectives:SetPoint("BOTTOMRIGHT", WorldMapPositioningGuide, "BOTTOMRIGHT", -30 - WorldMapQuestShowObjectivesText:GetWidth(), -9);
 		else
 			WorldMapQuestShowObjectives:SetPoint("BOTTOMRIGHT", WorldMapPositioningGuide, "BOTTOMRIGHT", -15 - WorldMapQuestShowObjectivesText:GetWidth(), 4);
 		end
-	end
+	end);
 
 	WorldMapScreenAnchor:StartMoving();
 	WorldMapScreenAnchor:SetPoint("TOPLEFT", 10, -118);
 	WorldMapScreenAnchor:StopMovingOrSizing();
 
 	-- Magic good default scale ratio based on screen height
-	WorldMapScreenAnchor.preferredMinimodeScale = 1+(0.56 * WorldFrame:GetHeight() / WorldMapFrame:GetHeight())
+	WorldMapScreenAnchor.preferredMinimodeScale = 1+(0.4 * WorldMapFrame:GetHeight() / WorldFrame:GetHeight())
 
 	WorldMapTitleButton:SetScript("OnDragStart", function()
 		WorldMapScreenAnchor:ClearAllPoints();
