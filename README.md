@@ -11,9 +11,7 @@ Magnify is a World of Warcraft WotLK (3.3.5a) add-on which allows the user to zo
 
 - :white_check_mark: Gatherer
 - :white_check_mark: pfQuest
-- :exclamation: ElvUI - works, but you must:
-  - Disable the Map (/ec -> Maps -> Map tab -> Uncheck 'Enable')
-  - Disable the Map skin (/ec -> Skins -> Uncheck 'Map')
+- :white_check_mark: ElvUI
 
 **TODO**
 

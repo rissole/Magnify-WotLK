@@ -6,8 +6,10 @@
             <AbsDimension x="1002" y="668" />
         </Size>
         <Anchors>
-            <Anchor point="TOP" relativeTo="WorldMapFrame" relativePoint="TOP">
-                <Offset x="-7" y="-69" />
+            <Anchor point="TOPLEFT" relativePoint="TOP" relativeTo="WorldMapPositioningGuide">
+                <Offset>
+                    <AbsDimension x="-726" y="-99"/>
+                </Offset>
             </Anchor>
         </Anchors>
     </ScrollFrame>

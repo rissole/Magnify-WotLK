@@ -60,9 +60,35 @@ end
 
 local function ElvUI_SetupWorldMapFrame()
 	local worldMap = GetElvUI():GetModule("WorldMap")
+	if not worldMap then
+		return
+	end
 	
-	if (worldMap and worldMap.coordsHolder and worldMap.coordsHolder.playerCoords) then
+	if (worldMap.coordsHolder and worldMap.coordsHolder.playerCoords) then
 		UpdatePointRelativeTo(worldMap.coordsHolder.playerCoords, WorldMapScrollFrame)
+	end
+
+	if (WorldMapDetailFrame.backdrop) then
+		WorldMapDetailFrame.backdrop:Hide()
+
+		local _, worldMapRelativeFrame = WorldMapFrame.backdrop
+		if (worldMapRelativeFrame == WorldMapDetailFrame) then
+			UpdatePointRelativeTo(WorldMapFrame.backdrop, WorldMapScrollFrame)
+		end
+	end
+	
+	if (WorldMapFrame.backdrop) then
+		-- We will take over the SetPoint behavior ElvUI, I'm sorry
+		WorldMapFrame.backdrop.Point = function() return; end
+
+		WorldMapFrame.backdrop:ClearAllPoints()
+		if (WorldMapZoneMinimapDropDown:IsVisible()) then
+			WorldMapFrame.backdrop:SetPoint("TOPLEFT", WorldMapZoneMinimapDropDown, "TOPLEFT", -20, 40)
+		else
+			WorldMapFrame.backdrop:SetPoint("TOPLEFT", WorldMapTitleButton, "TOPLEFT", 0, 0)
+		end
+		WorldMapFrame.backdrop:SetPoint("BOTTOM", WorldMapQuestShowObjectives, "BOTTOM", 0, 0)
+		WorldMapFrame.backdrop:SetPoint("RIGHT", WorldMapFrameCloseButton, "RIGHT", 0, 0)
 	end
 end
 
@@ -72,16 +98,12 @@ local function MagnifySetupWorldMapFrame()
 	WorldMapScrollFrame:EnableMouse(true)
 	WorldMapScrollFrame.panning = false
 	WorldMapScrollFrame.moved = false
-
-	WorldMapTitleButton:Hide()
-	WorldMapFrameTitle:Hide()
-	WorldMapFrame:SetMovable("false");
 	
 	if (WORLDMAP_SETTINGS.size == WORLDMAP_QUESTLIST_SIZE) then
-		WorldMapScrollFrame:SetPoint("TOP", WorldMapFrame, "TOP", -224, -99);
+		WorldMapScrollFrame:SetPoint("TOPLEFT", WorldMapPositioningGuide, "TOP", -726, -99);
 		WorldMapTrackQuest:SetPoint("BOTTOMLEFT", WorldMapPositioningGuide, "BOTTOMLEFT", 8, 4);
 	elseif (WORLDMAP_SETTINGS.size == WORLDMAP_WINDOWED_SIZE) then
-		WorldMapScrollFrame:SetPoint("TOP", WorldMapFrame, "TOP", -6, -68);
+		WorldMapScrollFrame:SetPoint("TOPLEFT", 37, -66);
 		WorldMapTrackQuest:SetPoint("BOTTOMLEFT", WorldMapPositioningGuide, "BOTTOMLEFT", 16, -9);
 
 		WorldMapFrame:SetPoint("TOPLEFT", WorldMapScreenAnchor, 0, 0);
@@ -94,7 +116,7 @@ local function MagnifySetupWorldMapFrame()
 		WorldMapFrameTitle:ClearAllPoints();
 		WorldMapFrameTitle:SetPoint("CENTER", WorldMapTitleButton, "CENTER", 32, 0)
 	else
-		WorldMapScrollFrame:SetPoint("TOP", WorldMapFrame, "TOP", 0, -70);
+		WorldMapScrollFrame:SetPoint("TOPLEFT", WorldMapPositioningGuide, "TOP", -502, -69);
 		WorldMapTrackQuest:SetPoint("BOTTOMLEFT", WorldMapPositioningGuide, "BOTTOMLEFT", 16, -9);
 	end
 
@@ -110,10 +132,9 @@ local function MagnifySetupWorldMapFrame()
 	WorldMapPOIFrame:SetParent(WorldMapDetailFrame)
 	WorldMapPlayer:SetParent(WorldMapDetailFrame)
 
-	WorldMapQuestScrollFrame:SetPoint("TOPLEFT", WorldMapScrollFrame, "TOPRIGHT", 6, 0)
-	WorldMapQuestDetailScrollFrame:SetPoint("BOTTOMLEFT", WorldMapScrollFrame, "BOTTOMLEFT", 20, -208)
+	UpdatePointRelativeTo(WorldMapQuestScrollFrame, WorldMapScrollFrame);
+	UpdatePointRelativeTo(WorldMapQuestDetailScrollFrame, WorldMapScrollFrame);
 
-	
 	if (GetElvUI()) then
 		ElvUI_SetupWorldMapFrame()
 	end
@@ -439,29 +460,10 @@ local function MagnifyOnFirstLoad()
 	WorldMapPlayer.Icon:SetPoint("CENTER", 0, 0)
 	WorldMapPlayer.Icon:SetTexture('Interface\\AddOns\\'..ADDON_NAME..'\\assets\\WorldMapArrow')
 	
-	local original_WorldMapFrame_SetFullMapView = WorldMapFrame_SetFullMapView;
-	_G['WorldMapFrame_SetFullMapView'] = function()
-		original_WorldMapFrame_SetFullMapView()
-		MagnifySetupWorldMapFrame()
-	end
-
-	local original_WorldMapFrame_SetQuestMapView = WorldMapFrame_SetQuestMapView;
-	_G['WorldMapFrame_SetQuestMapView'] = function()
-		original_WorldMapFrame_SetQuestMapView()
-		MagnifySetupWorldMapFrame()
-	end
-
-	local original_WorldMap_ToggleSizeDown = WorldMap_ToggleSizeDown;
-	_G['WorldMap_ToggleSizeDown'] = function()
-		original_WorldMap_ToggleSizeDown()
-		MagnifySetupWorldMapFrame()
-	end
-
-	local original_WorldMap_ToggleSizeUp = WorldMap_ToggleSizeUp;
-	_G['WorldMap_ToggleSizeUp'] = function()
-		original_WorldMap_ToggleSizeUp()
-		MagnifySetupWorldMapFrame()
-	end
+	hooksecurefunc("WorldMapFrame_SetFullMapView", MagnifySetupWorldMapFrame);
+	hooksecurefunc("WorldMapFrame_SetQuestMapView", MagnifySetupWorldMapFrame);
+	hooksecurefunc("WorldMap_ToggleSizeDown", MagnifySetupWorldMapFrame);
+	hooksecurefunc("WorldMap_ToggleSizeUp", MagnifySetupWorldMapFrame);
 
 	_G["WorldMapQuestShowObjectives_AdjustPosition"] = function ()
 		if ( WORLDMAP_SETTINGS.size == WORLDMAP_WINDOWED_SIZE ) then
