@@ -503,6 +503,8 @@ local function MagnifyOnFirstLoad()
     WorldMapButton:SetScript("OnMouseUp", WorldMapButton_OnMouseUp)
     WorldMapDetailFrame:SetParent(WorldMapScrollFrame)
 
+    WorldMapFrameAreaFrame:SetParent(WorldMapFrame)
+    WorldMapFrameAreaFrame:SetFrameLevel(WORLDMAP_POI_FRAMELEVEL)
     WorldMapFrameAreaFrame:SetPoint("TOP", WorldMapScrollFrame, "TOP", 0, -10)
 
     -- Not worth getting this ugly ping working
