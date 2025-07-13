@@ -28,6 +28,31 @@ local function updateBlobFrame()
 	end
 end
 
+local function resizePOI(poiButton)
+	if (poiButton) then
+		local _,_,_, x, y = poiButton:GetPoint()
+		if x ~= nil and y ~= nil then 
+			local s = 1 / WorldMapDetailFrame:GetScale()
+			poiButton:SetScale(s)
+			poiButton:SetPoint("CENTER", poiButton:GetParent(), "TOPLEFT", x*1/s, y*1/s)
+		end
+	end
+end
+
+local function MagnifyResizeQuestPOIs()
+	local QUEST_POI_MAX_TYPES = 4;
+	local POI_TYPE_MAX_BUTTONS = 25;
+	
+	for i = 1, QUEST_POI_MAX_TYPES do
+		for j = 1, POI_TYPE_MAX_BUTTONS do
+			local buttonName = "poiWorldMapPOIFrame"..i.."_"..j;
+			resizePOI(_G[buttonName])
+		end
+	end
+
+	resizePOI(QUEST_POI_SWAP_BUTTONS["WorldMapPOIFrame"])
+end
+
 local function MagnifySetDetailFrameScale(num)
 	WorldMapDetailFrame:SetScale(num)
 
@@ -64,6 +89,9 @@ local function MagnifySetDetailFrameScale(num)
 			MAP_VEHICLES[i]:SetScale(1/WorldMapDetailFrame:GetScale())
 		end
 	end
+
+	WorldMapFrame_OnEvent(WorldMapFrame, "DISPLAY_SIZE_CHANGED")
+	WorldMapFrame_DisplayQuests()
 end
 
 local function ElvUI_SetupWorldMapFrame()
@@ -480,6 +508,7 @@ local function MagnifyOnFirstLoad()
 	hooksecurefunc("WorldMapFrame_SetQuestMapView", MagnifySetupWorldMapFrame);
 	hooksecurefunc("WorldMap_ToggleSizeDown", MagnifySetupWorldMapFrame);
 	hooksecurefunc("WorldMap_ToggleSizeUp", MagnifySetupWorldMapFrame);
+	hooksecurefunc("WorldMapFrame_UpdateQuests", MagnifyResizeQuestPOIs)
 
 	hooksecurefunc("WorldMapQuestShowObjectives_AdjustPosition", function ()
 		if ( WORLDMAP_SETTINGS.size == WORLDMAP_WINDOWED_SIZE ) then
