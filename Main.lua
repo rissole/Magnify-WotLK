@@ -1,4 +1,4 @@
-local ADDON_NAME = "Magnify-WotLK"
+local ADDON_NAME, Magnify = ...
 
 local MIN_ZOOM = 1.0
 local MAX_ZOOM = 4.0
@@ -15,6 +15,20 @@ local WORLDMAP_POI_MAX_Y -- changes based on current scale, see WorldMapFrame_Se
 
 local PLAYER_ARROW_SIZE = 36
 
+local MagnifyPreviousState = {
+    panX = 0,
+    panY = 0,
+    scale = 1,
+    zone = 0
+}
+
+local function MagnifyPersistMapScrollAndPan()
+    MagnifyPreviousState.panX = WorldMapScrollFrame:GetHorizontalScroll()
+    MagnifyPreviousState.panY = WorldMapScrollFrame:GetVerticalScroll()
+    MagnifyPreviousState.scale = WorldMapDetailFrame:GetScale()
+    MagnifyPreviousState.zone = GetCurrentMapZone()
+end
+
 local function UpdatePointRelativeTo(frame, newRelativeFrame)
     local currentPoint, _currentRelativeFrame, currentRelativePoint, currentOffsetX, currentOffsetY = frame:GetPoint()
     frame:ClearAllPoints()
@@ -28,6 +42,8 @@ local function GetElvUI()
     return nil
 end
 
+--- Get Mapster object, and configuration value for given key provided (or nil)
+---@param configName string
 local function GetMapster(configName)
     if (LibStub and LibStub:GetLibrary("AceAddon-3.0", true)) then
         local mapster = LibStub:GetLibrary("AceAddon-3.0"):GetAddon("Mapster", true)
@@ -41,7 +57,8 @@ local function GetMapster(configName)
     return nil, nil
 end
 
-local function updateBlobFrame()
+local function MagnifyAfterScrollOrPan()
+    MagnifyPersistMapScrollAndPan()
     if (WORLDMAP_SETTINGS.selectedQuest) then
         WorldMapBlobFrame:DrawQuestBlob(WORLDMAP_SETTINGS.selectedQuestId, false);
         WorldMapBlobFrame:DrawQuestBlob(WORLDMAP_SETTINGS.selectedQuestId, true);
@@ -220,6 +237,14 @@ local function MagnifySetupWorldMapFrame()
 
     MagnifySetDetailFrameScale(1)
     WorldMapDetailFrame:SetAllPoints(WorldMapScrollFrame)
+    WorldMapScrollFrame:SetHorizontalScroll(0)
+    WorldMapScrollFrame:SetVerticalScroll(0)
+
+    if (GetCurrentMapZone() == MagnifyPreviousState.zone) then
+        MagnifySetDetailFrameScale(MagnifyPreviousState.scale)
+        WorldMapScrollFrame:SetHorizontalScroll(MagnifyPreviousState.panX)
+        WorldMapScrollFrame:SetVerticalScroll(MagnifyPreviousState.panY)
+    end
 
     WorldMapButton:SetScale(1)
     WorldMapButton:SetAllPoints(WorldMapDetailFrame)
@@ -229,7 +254,6 @@ local function MagnifySetupWorldMapFrame()
     WorldMapBlobFrame:SetParent(WorldMapDetailFrame)
     WorldMapBlobFrame:ClearAllPoints()
     WorldMapBlobFrame:SetAllPoints(WorldMapDetailFrame)
-    updateBlobFrame()
 
     WorldMapPlayer:SetParent(WorldMapDetailFrame)
 
@@ -258,7 +282,7 @@ local function WorldMapScrollFrame_OnPan(cursorX, cursorY)
         y = max(0, dY + WorldMapScrollFrame.y)
         y = min(y, WorldMapScrollFrame.maxY)
         WorldMapScrollFrame:SetVerticalScroll(y)
-        updateBlobFrame()
+        MagnifyAfterScrollOrPan()
     end
 end
 
@@ -522,7 +546,7 @@ local function WorldMapScrollFrame_OnMouseWheel()
 
     this:SetHorizontalScroll(newScrollH)
     this:SetVerticalScroll(newScrollV)
-    updateBlobFrame()
+    MagnifyAfterScrollOrPan()
 end
 
 local function WorldMapButton_OnMouseDown()
@@ -549,7 +573,7 @@ local function WorldMapButton_OnMouseUp()
 
         WorldMapScrollFrame:SetHorizontalScroll(0)
         WorldMapScrollFrame:SetVerticalScroll(0)
-        updateBlobFrame()
+        MagnifyAfterScrollOrPan()
 
         WorldMapScrollFrame.zoomedIn = false
     end
