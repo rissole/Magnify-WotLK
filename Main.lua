@@ -1,75 +1,40 @@
 local ADDON_NAME, Magnify = ...
 
-local MIN_ZOOM = 1.0
-local MAX_ZOOM = 4.0
-local ZOOM_STEP = 0.2
+-- Constants
+Magnify.MIN_ZOOM = 1.0
+Magnify.MAX_ZOOM = 4.0
+Magnify.ZOOM_STEP = 0.2
 
-local MINIMODE_MIN_ZOOM = 1.0
-local MINIMODE_MAX_ZOOM = 10.0
-local MINIMODE_ZOOM_STEP = 0.1
+Magnify.MINIMODE_MIN_ZOOM = 1.0
+Magnify.MINIMODE_MAX_ZOOM = 10.0
+Magnify.MINIMODE_ZOOM_STEP = 0.1
 
-local WORLDMAP_POI_MIN_X = 12
-local WORLDMAP_POI_MIN_Y = -12
-local WORLDMAP_POI_MAX_X -- changes based on current scale, see WorldMapFrame_SetPOIMaxBounds
-local WORLDMAP_POI_MAX_Y -- changes based on current scale, see WorldMapFrame_SetPOIMaxBounds
+Magnify.WORLDMAP_POI_MIN_X = 12
+Magnify.WORLDMAP_POI_MIN_Y = -12
+Magnify.worldmapPoiMaxX = nil -- changes based on current scale, see SetPOIMaxBounds
+Magnify.worldmapPoiMaxY = nil -- changes based on current scale, see SetPOIMaxBounds
 
-local PLAYER_ARROW_SIZE = 36
+Magnify.PLAYER_ARROW_SIZE = 36
 
-local MagnifyPreviousState = {
+-- If you open the map and the zone was the same 
+Magnify.PreviousState = {
     panX = 0,
     panY = 0,
     scale = 1,
     zone = 0
 }
 
-local function MagnifyPersistMapScrollAndPan()
-    MagnifyPreviousState.panX = WorldMapScrollFrame:GetHorizontalScroll()
-    MagnifyPreviousState.panY = WorldMapScrollFrame:GetVerticalScroll()
-    MagnifyPreviousState.scale = WorldMapDetailFrame:GetScale()
-    MagnifyPreviousState.zone = GetCurrentMapZone()
-end
-
-local function UpdatePointRelativeTo(frame, newRelativeFrame)
+local function updatePointRelativeTo(frame, newRelativeFrame)
     local currentPoint, _currentRelativeFrame, currentRelativePoint, currentOffsetX, currentOffsetY = frame:GetPoint()
     frame:ClearAllPoints()
     frame:SetPoint(currentPoint, newRelativeFrame, currentRelativePoint, currentOffsetX, currentOffsetY)
-end
-
-local function GetElvUI()
-    if ElvUI and ElvUI[1] then
-        return ElvUI[1]
-    end
-    return nil
-end
-
---- Get Mapster object, and configuration value for given key provided (or nil)
----@param configName string
-local function GetMapster(configName)
-    if (LibStub and LibStub:GetLibrary("AceAddon-3.0", true)) then
-        local mapster = LibStub:GetLibrary("AceAddon-3.0"):GetAddon("Mapster", true)
-        if (not mapster) then
-            return mapster, nil
-        end
-        if (mapster.db and mapster.db.profile) then
-            return mapster, mapster.db.profile[configName]
-        end
-    end
-    return nil, nil
-end
-
-local function MagnifyAfterScrollOrPan()
-    MagnifyPersistMapScrollAndPan()
-    if (WORLDMAP_SETTINGS.selectedQuest) then
-        WorldMapBlobFrame:DrawQuestBlob(WORLDMAP_SETTINGS.selectedQuestId, false);
-        WorldMapBlobFrame:DrawQuestBlob(WORLDMAP_SETTINGS.selectedQuestId, true);
-    end
 end
 
 local function resizePOI(poiButton)
     if (poiButton) then
         local _, _, _, x, y = poiButton:GetPoint()
         local mapsterScale = 1
-        local mapster, mapsterPoiScale = GetMapster("poiScale")
+        local mapster, mapsterPoiScale = Magnify.GetMapster("poiScale")
         if (mapster) then
             -- Sorry mapster I need to take the wheel
             mapster.WorldMapFrame_DisplayQuestPOI = function()
@@ -83,21 +48,36 @@ local function resizePOI(poiButton)
             poiButton:SetScale(s)
             poiButton:SetPoint("CENTER", poiButton:GetParent(), "TOPLEFT", posX, posY)
 
-            if (posY > WORLDMAP_POI_MIN_Y) then
-                posY = WORLDMAP_POI_MIN_Y
-            elseif (posY < WORLDMAP_POI_MAX_Y) then
-                posY = WORLDMAP_POI_MAX_Y
+            if (posY > Magnify.WORLDMAP_POI_MIN_Y) then
+                posY = Magnify.WORLDMAP_POI_MIN_Y
+            elseif (posY < Magnify.worldmapPoiMaxY) then
+                posY = Magnify.worldmapPoiMaxY
             end
-            if (posX < WORLDMAP_POI_MIN_X) then
-                posX = WORLDMAP_POI_MIN_X
-            elseif (posX > WORLDMAP_POI_MAX_X) then
-                posX = WORLDMAP_POI_MAX_X
+            if (posX < Magnify.WORLDMAP_POI_MIN_X) then
+                posX = Magnify.WORLDMAP_POI_MIN_X
+            elseif (posX > Magnify.worldmapPoiMaxX) then
+                posX = Magnify.worldmapPoiMaxX
             end
         end
     end
 end
 
-local function MagnifyResizeQuestPOIs()
+function Magnify.PersistMapScrollAndPan()
+    Magnify.PreviousState.panX = WorldMapScrollFrame:GetHorizontalScroll()
+    Magnify.PreviousState.panY = WorldMapScrollFrame:GetVerticalScroll()
+    Magnify.PreviousState.scale = WorldMapDetailFrame:GetScale()
+    Magnify.PreviousState.zone = GetCurrentMapZone()
+end
+
+function Magnify.AfterScrollOrPan()
+    Magnify.PersistMapScrollAndPan()
+    if (WORLDMAP_SETTINGS.selectedQuest) then
+        WorldMapBlobFrame:DrawQuestBlob(WORLDMAP_SETTINGS.selectedQuestId, false);
+        WorldMapBlobFrame:DrawQuestBlob(WORLDMAP_SETTINGS.selectedQuestId, true);
+    end
+end
+
+function Magnify.ResizeQuestPOIs()
     local QUEST_POI_MAX_TYPES = 4;
     local POI_TYPE_MAX_BUTTONS = 25;
 
@@ -111,24 +91,14 @@ local function MagnifyResizeQuestPOIs()
     resizePOI(QUEST_POI_SWAP_BUTTONS["WorldMapPOIFrame"])
 end
 
-local function RedrawSelectedQuest()
-    if (WORLDMAP_SETTINGS.selectedQuestId) then
-        -- try to select previously selected quest
-        WorldMapFrame_SelectQuestById(WORLDMAP_SETTINGS.selectedQuestId);
-    else
-        -- select the first quest
-        WorldMapFrame_SelectQuestFrame(_G["WorldMapQuestFrame1"]);
-    end
+function Magnify.SetPOIMaxBounds()
+    Magnify.worldmapPoiMaxY = WorldMapDetailFrame:GetHeight() * -WORLDMAP_SETTINGS.size + 12;
+    Magnify.worldmapPoiMaxX = WorldMapDetailFrame:GetWidth() * WORLDMAP_SETTINGS.size + 12;
 end
 
-local function MagnifySetPOIMaxBounds()
-    WORLDMAP_POI_MAX_Y = WorldMapDetailFrame:GetHeight() * -WORLDMAP_SETTINGS.size + 12;
-    WORLDMAP_POI_MAX_X = WorldMapDetailFrame:GetWidth() * WORLDMAP_SETTINGS.size + 12;
-end
-
-local function MagnifySetDetailFrameScale(num)
+function Magnify.SetDetailFrameScale(num)
     WorldMapDetailFrame:SetScale(num)
-    WorldMapFrame_SetPOIMaxBounds()
+    Magnify.SetPOIMaxBounds() -- Calling Magnify method
 
     -- Adjust frames to inversely scale with the detail frame so they maintain relative screen size
     WorldMapPOIFrame:SetScale(1 / WORLDMAP_SETTINGS.size)
@@ -165,18 +135,40 @@ local function MagnifySetDetailFrameScale(num)
 
     WorldMapFrame_OnEvent(WorldMapFrame, "DISPLAY_SIZE_CHANGED")
     if (WorldMapFrame_UpdateQuests() > 0) then
-        RedrawSelectedQuest()
+        Magnify.RedrawSelectedQuest() -- Calling Magnify method
     end
 end
 
-local function ElvUI_SetupWorldMapFrame()
-    local worldMap = GetElvUI():GetModule("WorldMap")
+function Magnify.GetElvUI()
+    if ElvUI and ElvUI[1] then
+        return ElvUI[1]
+    end
+    return nil
+end
+
+--- Get Mapster object, and configuration value for given key provided (or nil)
+---@param configName string
+function Magnify.GetMapster(configName)
+    if (LibStub and LibStub:GetLibrary("AceAddon-3.0", true)) then
+        local mapster = LibStub:GetLibrary("AceAddon-3.0"):GetAddon("Mapster", true)
+        if (not mapster) then
+            return mapster, nil
+        end
+        if (mapster.db and mapster.db.profile) then
+            return mapster, mapster.db.profile[configName]
+        end
+    end
+    return nil, nil
+end
+
+function Magnify.ElvUI_SetupWorldMapFrame()
+    local worldMap = Magnify.GetElvUI():GetModule("WorldMap")
     if not worldMap then
         return
     end
 
     if (worldMap.coordsHolder and worldMap.coordsHolder.playerCoords) then
-        UpdatePointRelativeTo(worldMap.coordsHolder.playerCoords, WorldMapScrollFrame)
+        updatePointRelativeTo(worldMap.coordsHolder.playerCoords, WorldMapScrollFrame)
     end
 
     if (WorldMapDetailFrame.backdrop) then
@@ -184,7 +176,7 @@ local function ElvUI_SetupWorldMapFrame()
 
         local _, worldMapRelativeFrame = WorldMapFrame.backdrop
         if (worldMapRelativeFrame == WorldMapDetailFrame) then
-            UpdatePointRelativeTo(WorldMapFrame.backdrop, WorldMapScrollFrame)
+            updatePointRelativeTo(WorldMapFrame.backdrop, WorldMapScrollFrame)
         end
     end
 
@@ -205,7 +197,7 @@ local function ElvUI_SetupWorldMapFrame()
     end
 end
 
-local function MagnifySetupWorldMapFrame()
+function Magnify.SetupWorldMapFrame()
     WorldMapScrollFrameScrollBar:Hide()
     WorldMapFrame:EnableMouse(true)
     WorldMapScrollFrame:EnableMouse(true)
@@ -235,15 +227,15 @@ local function MagnifySetupWorldMapFrame()
 
     WorldMapScrollFrame:SetScale(WORLDMAP_SETTINGS.size);
 
-    MagnifySetDetailFrameScale(1)
+    Magnify.SetDetailFrameScale(1)
     WorldMapDetailFrame:SetAllPoints(WorldMapScrollFrame)
     WorldMapScrollFrame:SetHorizontalScroll(0)
     WorldMapScrollFrame:SetVerticalScroll(0)
 
-    if (GetCurrentMapZone() == MagnifyPreviousState.zone) then
-        MagnifySetDetailFrameScale(MagnifyPreviousState.scale)
-        WorldMapScrollFrame:SetHorizontalScroll(MagnifyPreviousState.panX)
-        WorldMapScrollFrame:SetVerticalScroll(MagnifyPreviousState.panY)
+    if (GetCurrentMapZone() == Magnify.PreviousState.zone) then
+        Magnify.SetDetailFrameScale(Magnify.PreviousState.scale)
+        WorldMapScrollFrame:SetHorizontalScroll(Magnify.PreviousState.panX)
+        WorldMapScrollFrame:SetVerticalScroll(Magnify.PreviousState.panY)
     end
 
     WorldMapButton:SetScale(1)
@@ -257,15 +249,15 @@ local function MagnifySetupWorldMapFrame()
 
     WorldMapPlayer:SetParent(WorldMapDetailFrame)
 
-    UpdatePointRelativeTo(WorldMapQuestScrollFrame, WorldMapScrollFrame);
-    UpdatePointRelativeTo(WorldMapQuestDetailScrollFrame, WorldMapScrollFrame);
+    updatePointRelativeTo(WorldMapQuestScrollFrame, WorldMapScrollFrame);
+    updatePointRelativeTo(WorldMapQuestDetailScrollFrame, WorldMapScrollFrame);
 
-    if (GetElvUI()) then
-        ElvUI_SetupWorldMapFrame()
+    if (Magnify.GetElvUI()) then -- Calling Magnify method
+        Magnify.ElvUI_SetupWorldMapFrame() -- Calling Magnify method
     end
 end
 
-local function WorldMapScrollFrame_OnPan(cursorX, cursorY)
+function Magnify.WorldMapScrollFrame_OnPan(cursorX, cursorY)
     local dX = WorldMapScrollFrame.cursorX - cursorX
     local dY = cursorY - WorldMapScrollFrame.cursorY
     dX = dX / this:GetEffectiveScale()
@@ -282,11 +274,11 @@ local function WorldMapScrollFrame_OnPan(cursorX, cursorY)
         y = max(0, dY + WorldMapScrollFrame.y)
         y = min(y, WorldMapScrollFrame.maxY)
         WorldMapScrollFrame:SetVerticalScroll(y)
-        MagnifyAfterScrollOrPan()
+        Magnify.AfterScrollOrPan()
     end
 end
 
-local function Magnify_WorldMapButton_OnUpdate(self, elapsed)
+function Magnify.WorldMapButton_OnUpdate(self, elapsed)
     local x, y = GetCursorPosition();
     x = x / self:GetEffectiveScale();
     y = y / self:GetEffectiveScale();
@@ -340,9 +332,9 @@ local function Magnify_WorldMapButton_OnUpdate(self, elapsed)
 
         WorldMapPlayer:SetAllPoints(PlayerArrowFrame);
         WorldMapPlayer.Icon:SetRotation(PlayerArrowFrame:GetFacing())
-        local _, mapsterArrowScale = GetMapster('arrowScale')
-        WorldMapPlayer.Icon:SetSize(PLAYER_ARROW_SIZE * (mapsterArrowScale or 1),
-            PLAYER_ARROW_SIZE * (mapsterArrowScale or 1))
+        local _, mapsterArrowScale = Magnify.GetMapster('arrowScale') -- Calling Magnify method
+        WorldMapPlayer.Icon:SetSize(Magnify.PLAYER_ARROW_SIZE * (mapsterArrowScale or 1),
+            Magnify.PLAYER_ARROW_SIZE * (mapsterArrowScale or 1))
         WorldMapPlayer:Show();
     end
 
@@ -361,9 +353,9 @@ local function Magnify_WorldMapButton_OnUpdate(self, elapsed)
                 partyMemberFrame:Hide();
             else
                 partyX = partyX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale() *
-                             WORLDMAP_SETTINGS.size;
+                                     WORLDMAP_SETTINGS.size;
                 partyY = -partyY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale() *
-                             WORLDMAP_SETTINGS.size;
+                                     WORLDMAP_SETTINGS.size;
                 partyMemberFrame:SetPoint("CENTER", "WorldMapDetailFrame", "TOPLEFT", partyX, partyY);
                 partyMemberFrame.name = nil;
                 partyMemberFrame.unit = unit;
@@ -379,9 +371,9 @@ local function Magnify_WorldMapButton_OnUpdate(self, elapsed)
                 partyMemberFrame:Hide();
             else
                 partyX = partyX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale() *
-                             WORLDMAP_SETTINGS.size;
+                                     WORLDMAP_SETTINGS.size;
                 partyY = -partyY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale() *
-                             WORLDMAP_SETTINGS.size;
+                                     WORLDMAP_SETTINGS.size;
                 partyMemberFrame:SetPoint("CENTER", "WorldMapDetailFrame", "TOPLEFT", partyX, partyY);
                 partyMemberFrame:Show();
             end
@@ -444,9 +436,9 @@ local function Magnify_WorldMapButton_OnUpdate(self, elapsed)
         WorldMapDeathRelease:Hide();
     else
         deathReleaseX = deathReleaseX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale() *
-                            WORLDMAP_SETTINGS.size;
+                                 WORLDMAP_SETTINGS.size;
         deathReleaseY = -deathReleaseY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale() *
-                            WORLDMAP_SETTINGS.size;
+                                 WORLDMAP_SETTINGS.size;
 
         WorldMapDeathRelease:SetPoint("CENTER", "WorldMapDetailFrame", "TOPLEFT", deathReleaseX, deathReleaseY);
         WorldMapDeathRelease:Show();
@@ -473,9 +465,9 @@ local function Magnify_WorldMapButton_OnUpdate(self, elapsed)
         if (vehicleX and isAlive and not isPlayer and VEHICLE_TEXTURES[vehicleType]) then
             local mapVehicleFrame = MAP_VEHICLES[i];
             vehicleX = vehicleX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale() *
-                           WORLDMAP_SETTINGS.size;
+                                   WORLDMAP_SETTINGS.size;
             vehicleY = -vehicleY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale() *
-                           WORLDMAP_SETTINGS.size;
+                                   WORLDMAP_SETTINGS.size;
             mapVehicleFrame.texture:SetRotation(orientation);
             mapVehicleFrame.texture:SetTexture(WorldMap_GetVehicleTexture(vehicleType, isPossessed));
             mapVehicleFrame:SetPoint("CENTER", "WorldMapDetailFrame", "TOPLEFT", vehicleX, vehicleY);
@@ -496,16 +488,16 @@ local function Magnify_WorldMapButton_OnUpdate(self, elapsed)
     end
 
     if WorldMapScrollFrame.panning then
-        WorldMapScrollFrame_OnPan(GetCursorPosition())
+        Magnify.WorldMapScrollFrame_OnPan(GetCursorPosition()) -- Calling Magnify method
     end
 end
 
-local function WorldMapScrollFrame_OnMouseWheel()
+function Magnify.WorldMapScrollFrame_OnMouseWheel()
     if (IsControlKeyDown() and WORLDMAP_SETTINGS.size == WORLDMAP_WINDOWED_SIZE) then
         local oldScale = WorldMapFrame:GetScale()
-        local newScale = oldScale + arg1 * MINIMODE_ZOOM_STEP
-        newScale = max(MINIMODE_MIN_ZOOM, newScale)
-        newScale = min(MINIMODE_MAX_ZOOM, newScale)
+        local newScale = oldScale + arg1 * Magnify.MINIMODE_ZOOM_STEP
+        newScale = max(Magnify.MINIMODE_MIN_ZOOM, newScale)
+        newScale = min(Magnify.MINIMODE_MAX_ZOOM, newScale)
 
         WorldMapFrame:SetScale(newScale)
         WorldMapScreenAnchor.preferredMinimodeScale = newScale
@@ -524,15 +516,15 @@ local function WorldMapScrollFrame_OnMouseWheel()
 
     local oldScale = WorldMapDetailFrame:GetScale()
     local newScale
-    newScale = oldScale + arg1 * ZOOM_STEP
-    newScale = max(MIN_ZOOM, newScale)
-    newScale = min(MAX_ZOOM, newScale)
+    newScale = oldScale + arg1 * Magnify.ZOOM_STEP
+    newScale = max(Magnify.MIN_ZOOM, newScale)
+    newScale = min(Magnify.MAX_ZOOM, newScale)
 
-    MagnifySetDetailFrameScale(newScale)
+    Magnify.SetDetailFrameScale(newScale)
 
     this.maxX = ((WorldMapDetailFrame:GetWidth() * newScale) - this:GetWidth()) / newScale
     this.maxY = ((WorldMapDetailFrame:GetHeight() * newScale) - this:GetHeight()) / newScale
-    this.zoomedIn = WorldMapDetailFrame:GetScale() > MIN_ZOOM
+    this.zoomedIn = WorldMapDetailFrame:GetScale() > Magnify.MIN_ZOOM
 
     local centerX = oldScrollH + frameX / oldScale
     local centerY = oldScrollV + frameY / oldScale
@@ -546,10 +538,10 @@ local function WorldMapScrollFrame_OnMouseWheel()
 
     this:SetHorizontalScroll(newScrollH)
     this:SetVerticalScroll(newScrollV)
-    MagnifyAfterScrollOrPan()
+    Magnify.AfterScrollOrPan()
 end
 
-local function WorldMapButton_OnMouseDown()
+function Magnify.WorldMapButton_OnMouseDown()
     if arg1 == 'LeftButton' and WorldMapScrollFrame.zoomedIn then
         WorldMapScrollFrame.panning = true
 
@@ -563,17 +555,17 @@ local function WorldMapButton_OnMouseDown()
     end
 end
 
-local function WorldMapButton_OnMouseUp()
+function Magnify.WorldMapButton_OnMouseUp()
     WorldMapScrollFrame.panning = false
 
     if not WorldMapScrollFrame.moved then
         WorldMapButton_OnClick(WorldMapButton, arg1)
 
-        MagnifySetDetailFrameScale(MIN_ZOOM)
+        Magnify.SetDetailFrameScale(Magnify.MIN_ZOOM)
 
         WorldMapScrollFrame:SetHorizontalScroll(0)
         WorldMapScrollFrame:SetVerticalScroll(0)
-        MagnifyAfterScrollOrPan()
+        Magnify.AfterScrollOrPan()
 
         WorldMapScrollFrame.zoomedIn = false
     end
@@ -581,11 +573,21 @@ local function WorldMapButton_OnMouseUp()
     WorldMapScrollFrame.moved = false
 end
 
-local function MagnifyOnFirstLoad()
+function Magnify.RedrawSelectedQuest()
+    if (WORLDMAP_SETTINGS.selectedQuestId) then
+        -- try to select previously selected quest
+        WorldMapFrame_SelectQuestById(WORLDMAP_SETTINGS.selectedQuestId);
+    else
+        -- select the first quest
+        WorldMapFrame_SelectQuestFrame(_G["WorldMapQuestFrame1"]);
+    end
+end
+
+function Magnify.OnFirstLoad()
     WorldMapScrollFrame:SetScrollChild(WorldMapDetailFrame)
-    WorldMapScrollFrame:SetScript("OnMouseWheel", WorldMapScrollFrame_OnMouseWheel)
-    WorldMapButton:SetScript("OnMouseDown", WorldMapButton_OnMouseDown)
-    WorldMapButton:SetScript("OnMouseUp", WorldMapButton_OnMouseUp)
+    WorldMapScrollFrame:SetScript("OnMouseWheel", Magnify.WorldMapScrollFrame_OnMouseWheel)
+    WorldMapButton:SetScript("OnMouseDown", Magnify.WorldMapButton_OnMouseDown)
+    WorldMapButton:SetScript("OnMouseUp", Magnify.WorldMapButton_OnMouseUp)
     WorldMapDetailFrame:SetParent(WorldMapScrollFrame)
 
     WorldMapFrameAreaFrame:SetParent(WorldMapFrame)
@@ -601,16 +603,16 @@ local function MagnifyOnFirstLoad()
     -- Add higher definition arrow that will get masked correctly on pan
     -- (Default player arrow stays visible even if you pan it to be off the map)
     WorldMapPlayer.Icon = WorldMapPlayer:CreateTexture(nil, 'ARTWORK')
-    WorldMapPlayer.Icon:SetSize(PLAYER_ARROW_SIZE, PLAYER_ARROW_SIZE)
+    WorldMapPlayer.Icon:SetSize(Magnify.PLAYER_ARROW_SIZE, Magnify.PLAYER_ARROW_SIZE)
     WorldMapPlayer.Icon:SetPoint("CENTER", 0, 0)
     WorldMapPlayer.Icon:SetTexture('Interface\\AddOns\\' .. ADDON_NAME .. '\\assets\\WorldMapArrow')
 
-    hooksecurefunc("WorldMapFrame_SetFullMapView", MagnifySetupWorldMapFrame);
-    hooksecurefunc("WorldMapFrame_SetQuestMapView", MagnifySetupWorldMapFrame);
-    hooksecurefunc("WorldMap_ToggleSizeDown", MagnifySetupWorldMapFrame);
-    hooksecurefunc("WorldMap_ToggleSizeUp", MagnifySetupWorldMapFrame);
-    hooksecurefunc("WorldMapFrame_UpdateQuests", MagnifyResizeQuestPOIs);
-    hooksecurefunc("WorldMapFrame_SetPOIMaxBounds", MagnifySetPOIMaxBounds);
+    hooksecurefunc("WorldMapFrame_SetFullMapView", Magnify.SetupWorldMapFrame);
+    hooksecurefunc("WorldMapFrame_SetQuestMapView", Magnify.SetupWorldMapFrame);
+    hooksecurefunc("WorldMap_ToggleSizeDown", Magnify.SetupWorldMapFrame);
+    hooksecurefunc("WorldMap_ToggleSizeUp", Magnify.SetupWorldMapFrame);
+    hooksecurefunc("WorldMapFrame_UpdateQuests", Magnify.ResizeQuestPOIs);
+    hooksecurefunc("WorldMapFrame_SetPOIMaxBounds", Magnify.SetPOIMaxBounds);
 
     hooksecurefunc("WorldMapQuestShowObjectives_AdjustPosition", function()
         if (WORLDMAP_SETTINGS.size == WORLDMAP_WINDOWED_SIZE) then
@@ -644,21 +646,21 @@ local function MagnifyOnFirstLoad()
         WorldMapScreenAnchor:StopMovingOrSizing();
     end)
 
-    WorldMapButton:SetScript("OnUpdate", Magnify_WorldMapButton_OnUpdate)
+    WorldMapButton:SetScript("OnUpdate", Magnify.WorldMapButton_OnUpdate)
 
     local original_WorldMapFrame_OnShow = WorldMapFrame:GetScript("OnShow")
     WorldMapFrame:SetScript("OnShow", function(self)
         original_WorldMapFrame_OnShow(self)
-        MagnifySetupWorldMapFrame()
+        Magnify.SetupWorldMapFrame()
     end)
 end
 
-local function OnEvent(self, event, addonName)
+function Magnify.OnEvent(self, event, addonName)
     if event == "ADDON_LOADED" and addonName == ADDON_NAME then
-        MagnifyOnFirstLoad()
+        Magnify.OnFirstLoad()
     end
 end
 
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("ADDON_LOADED")
-eventFrame:SetScript("OnEvent", OnEvent)
+eventFrame:SetScript("OnEvent", Magnify.OnEvent)
