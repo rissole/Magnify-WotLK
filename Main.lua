@@ -8,6 +8,13 @@ local MINIMODE_MIN_ZOOM = 1.0
 local MINIMODE_MAX_ZOOM = 10.0
 local MINIMODE_ZOOM_STEP = 0.1
 
+local WORLDMAP_POI_MIN_X = 12
+local WORLDMAP_POI_MIN_Y = -12
+local WORLDMAP_POI_MAX_X -- changes based on current scale, see WorldMapFrame_SetPOIMaxBounds
+local WORLDMAP_POI_MAX_Y -- changes based on current scale, see WorldMapFrame_SetPOIMaxBounds
+
+local PLAYER_ARROW_SIZE = 36
+
 local function UpdatePointRelativeTo(frame, newRelativeFrame)
     local currentPoint, _currentRelativeFrame, currentRelativePoint, currentOffsetX, currentOffsetY = frame:GetPoint()
     frame:ClearAllPoints()
@@ -21,6 +28,19 @@ local function GetElvUI()
     return nil
 end
 
+local function GetMapster(configName)
+    if (LibStub and LibStub:GetLibrary("AceAddon-3.0", true)) then
+        local mapster = LibStub:GetLibrary("AceAddon-3.0"):GetAddon("Mapster", true)
+        if (not mapster) then
+            return mapster, nil
+        end
+        if (mapster.db and mapster.db.profile) then
+            return mapster, mapster.db.profile[configName]
+        end
+    end
+    return nil, nil
+end
+
 local function updateBlobFrame()
     if (WORLDMAP_SETTINGS.selectedQuest) then
         WorldMapBlobFrame:DrawQuestBlob(WORLDMAP_SETTINGS.selectedQuestId, false);
@@ -31,10 +51,31 @@ end
 local function resizePOI(poiButton)
     if (poiButton) then
         local _, _, _, x, y = poiButton:GetPoint()
+        local mapsterScale = 1
+        local mapster, mapsterPoiScale = GetMapster("poiScale")
+        if (mapster) then
+            -- Sorry mapster I need to take the wheel
+            mapster.WorldMapFrame_DisplayQuestPOI = function()
+            end
+        end
         if x ~= nil and y ~= nil then
-            local s = 1 / WorldMapDetailFrame:GetScale()
+            local s = WORLDMAP_SETTINGS.size / WorldMapDetailFrame:GetEffectiveScale() * (mapsterScale or 1)
+
+            local posX = x * 1 / s
+            local posY = y * 1 / s
             poiButton:SetScale(s)
-            poiButton:SetPoint("CENTER", poiButton:GetParent(), "TOPLEFT", x * 1 / s, y * 1 / s)
+            poiButton:SetPoint("CENTER", poiButton:GetParent(), "TOPLEFT", posX, posY)
+
+            if (posY > WORLDMAP_POI_MIN_Y) then
+                posY = WORLDMAP_POI_MIN_Y
+            elseif (posY < WORLDMAP_POI_MAX_Y) then
+                posY = WORLDMAP_POI_MAX_Y
+            end
+            if (posX < WORLDMAP_POI_MIN_X) then
+                posX = WORLDMAP_POI_MIN_X
+            elseif (posX > WORLDMAP_POI_MAX_X) then
+                posX = WORLDMAP_POI_MAX_X
+            end
         end
     end
 end
@@ -53,8 +94,24 @@ local function MagnifyResizeQuestPOIs()
     resizePOI(QUEST_POI_SWAP_BUTTONS["WorldMapPOIFrame"])
 end
 
+local function RedrawSelectedQuest()
+    if (WORLDMAP_SETTINGS.selectedQuestId) then
+        -- try to select previously selected quest
+        WorldMapFrame_SelectQuestById(WORLDMAP_SETTINGS.selectedQuestId);
+    else
+        -- select the first quest
+        WorldMapFrame_SelectQuestFrame(_G["WorldMapQuestFrame1"]);
+    end
+end
+
+local function MagnifySetPOIMaxBounds()
+    WORLDMAP_POI_MAX_Y = WorldMapDetailFrame:GetHeight() * -WORLDMAP_SETTINGS.size + 12;
+    WORLDMAP_POI_MAX_X = WorldMapDetailFrame:GetWidth() * WORLDMAP_SETTINGS.size + 12;
+end
+
 local function MagnifySetDetailFrameScale(num)
     WorldMapDetailFrame:SetScale(num)
+    WorldMapFrame_SetPOIMaxBounds()
 
     -- Adjust frames to inversely scale with the detail frame so they maintain relative screen size
     WorldMapPOIFrame:SetScale(1 / WORLDMAP_SETTINGS.size)
@@ -90,7 +147,9 @@ local function MagnifySetDetailFrameScale(num)
     end
 
     WorldMapFrame_OnEvent(WorldMapFrame, "DISPLAY_SIZE_CHANGED")
-    WorldMapFrame_DisplayQuests()
+    if (WorldMapFrame_UpdateQuests() > 0) then
+        RedrawSelectedQuest()
+    end
 end
 
 local function ElvUI_SetupWorldMapFrame()
@@ -257,6 +316,9 @@ local function Magnify_WorldMapButton_OnUpdate(self, elapsed)
 
         WorldMapPlayer:SetAllPoints(PlayerArrowFrame);
         WorldMapPlayer.Icon:SetRotation(PlayerArrowFrame:GetFacing())
+        local _, mapsterArrowScale = GetMapster('arrowScale')
+        WorldMapPlayer.Icon:SetSize(PLAYER_ARROW_SIZE * (mapsterArrowScale or 1),
+            PLAYER_ARROW_SIZE * (mapsterArrowScale or 1))
         WorldMapPlayer:Show();
     end
 
@@ -515,7 +577,7 @@ local function MagnifyOnFirstLoad()
     -- Add higher definition arrow that will get masked correctly on pan
     -- (Default player arrow stays visible even if you pan it to be off the map)
     WorldMapPlayer.Icon = WorldMapPlayer:CreateTexture(nil, 'ARTWORK')
-    WorldMapPlayer.Icon:SetSize(36, 36)
+    WorldMapPlayer.Icon:SetSize(PLAYER_ARROW_SIZE, PLAYER_ARROW_SIZE)
     WorldMapPlayer.Icon:SetPoint("CENTER", 0, 0)
     WorldMapPlayer.Icon:SetTexture('Interface\\AddOns\\' .. ADDON_NAME .. '\\assets\\WorldMapArrow')
 
@@ -523,7 +585,8 @@ local function MagnifyOnFirstLoad()
     hooksecurefunc("WorldMapFrame_SetQuestMapView", MagnifySetupWorldMapFrame);
     hooksecurefunc("WorldMap_ToggleSizeDown", MagnifySetupWorldMapFrame);
     hooksecurefunc("WorldMap_ToggleSizeUp", MagnifySetupWorldMapFrame);
-    hooksecurefunc("WorldMapFrame_UpdateQuests", MagnifyResizeQuestPOIs)
+    hooksecurefunc("WorldMapFrame_UpdateQuests", MagnifyResizeQuestPOIs);
+    hooksecurefunc("WorldMapFrame_SetPOIMaxBounds", MagnifySetPOIMaxBounds);
 
     hooksecurefunc("WorldMapQuestShowObjectives_AdjustPosition", function()
         if (WORLDMAP_SETTINGS.size == WORLDMAP_WINDOWED_SIZE) then

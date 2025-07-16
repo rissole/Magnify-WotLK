@@ -16,10 +16,11 @@ Magnify is a World of Warcraft WotLK (3.3.5a) add-on which allows the user to zo
 
 **Compatibility**
 
-- :white_check_mark: Gatherer
-- :white_check_mark: pfQuest
 - :white_check_mark: ElvUI
+- :white_check_mark: Gatherer
+- :white_check_mark: Mapster
 - :white_check_mark: MozzFullWorldMap
+- :white_check_mark: pfQuest
 
 **TODO**
 
