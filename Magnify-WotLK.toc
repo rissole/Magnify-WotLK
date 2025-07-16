@@ -1,8 +1,10 @@
 ## Interface: 30300
 ## Title: Magnify |cff1784d1(WotLK)|r
 ## Notes: World Map Zoom Addon for 3.3.5a
-## Version: 1.2.0
+## Version: 1.3.0
 ## Author: rissole
+## SavedVariables: MagnifyOptions
 
 Frames.xml
 Main.lua
+Options.lua

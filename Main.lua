@@ -16,12 +16,16 @@ Magnify.worldmapPoiMaxY = nil -- changes based on current scale, see SetPOIMaxBo
 
 Magnify.PLAYER_ARROW_SIZE = 36
 
--- If you open the map and the zone was the same 
+-- If you open the map and the zone was the same, we want to remember the previous state
 Magnify.PreviousState = {
     panX = 0,
     panY = 0,
     scale = 1,
     zone = 0
+}
+
+MagnifyOptions = {
+    enablePersistZoom = false,
 }
 
 local function updatePointRelativeTo(frame, newRelativeFrame)
@@ -232,7 +236,7 @@ function Magnify.SetupWorldMapFrame()
     WorldMapScrollFrame:SetHorizontalScroll(0)
     WorldMapScrollFrame:SetVerticalScroll(0)
 
-    if (GetCurrentMapZone() == Magnify.PreviousState.zone) then
+    if (MagnifyOptions.enablePersistZoom and GetCurrentMapZone() == Magnify.PreviousState.zone) then
         Magnify.SetDetailFrameScale(Magnify.PreviousState.scale)
         WorldMapScrollFrame:SetHorizontalScroll(Magnify.PreviousState.panX)
         WorldMapScrollFrame:SetVerticalScroll(Magnify.PreviousState.panY)
@@ -658,6 +662,7 @@ end
 function Magnify.OnEvent(self, event, addonName)
     if event == "ADDON_LOADED" and addonName == ADDON_NAME then
         Magnify.OnFirstLoad()
+        Magnify.InitOptions()
     end
 end
 

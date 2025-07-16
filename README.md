@@ -4,8 +4,9 @@ Magnify is a World of Warcraft WotLK (3.3.5a) add-on which allows the user to zo
 
 **Features**
 
-- Scroll to zoom on world map
+- Scroll to zoom on world map, click + drag to pan
 - Ctrl + Scroll to scale the windowed world map
+- Options are configurable using `/magnify`
 - Recommended: Install [MozzFullWorldMap](https://www.curseforge.com/wow/addons/mozz-full-world-map-fans-update/files/430783) addon to display unexplored areas. Combined, these two addons provide similar functionality to Leatrix Maps.
 
 # How to install
