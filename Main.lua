@@ -282,6 +282,18 @@ function Magnify.WorldMapScrollFrame_OnPan(cursorX, cursorY)
     end
 end
 
+function Magnify.ColorWorldMapPartyMemberFrame(partyMemberFrame, unit)
+    local classColor = RAID_CLASS_COLORS[select(2, UnitClass(unit))];
+    if (classColor) then
+        partyMemberFrame.colorIcon:Show();
+        partyMemberFrame.icon:Hide();
+        partyMemberFrame.colorIcon:SetVertexColor(classColor.r, classColor.g, classColor.b, 1);
+    else
+        partyMemberFrame.colorIcon:Hide();
+        partyMemberFrame.icon:Show();
+    end
+end
+
 function Magnify.WorldMapButton_OnUpdate(self, elapsed)
     local x, y = GetCursorPosition();
     x = x / self:GetEffectiveScale();
@@ -356,13 +368,12 @@ function Magnify.WorldMapButton_OnUpdate(self, elapsed)
             if ((partyX == 0 and partyY == 0) or UnitIsUnit(unit, "player")) then
                 partyMemberFrame:Hide();
             else
-                partyX = partyX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale() *
-                                     WORLDMAP_SETTINGS.size;
-                partyY = -partyY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale() *
-                                     WORLDMAP_SETTINGS.size;
+                partyX = partyX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale()
+                partyY = -partyY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale()
                 partyMemberFrame:SetPoint("CENTER", "WorldMapDetailFrame", "TOPLEFT", partyX, partyY);
                 partyMemberFrame.name = nil;
                 partyMemberFrame.unit = unit;
+                Magnify.ColorWorldMapPartyMemberFrame(partyMemberFrame, unit);
                 partyMemberFrame:Show();
                 playerCount = playerCount + 1;
             end
@@ -374,11 +385,10 @@ function Magnify.WorldMapButton_OnUpdate(self, elapsed)
             if (partyX == 0 and partyY == 0) then
                 partyMemberFrame:Hide();
             else
-                partyX = partyX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale() *
-                                     WORLDMAP_SETTINGS.size;
-                partyY = -partyY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale() *
-                                     WORLDMAP_SETTINGS.size;
-                partyMemberFrame:SetPoint("CENTER", "WorldMapDetailFrame", "TOPLEFT", partyX, partyY);
+                partyX = partyX * WorldMapButton:GetWidth() * WorldMapDetailFrame:GetScale();
+                partyY = -partyY * WorldMapButton:GetHeight() * WorldMapDetailFrame:GetScale();
+                partyMemberFrame:SetPoint("CENTER", "WorldMapButton", "TOPLEFT", partyX, partyY);
+                Magnify.ColorWorldMapPartyMemberFrame(partyMemberFrame, "party" .. i);
                 partyMemberFrame:Show();
             end
         end
@@ -391,11 +401,13 @@ function Magnify.WorldMapButton_OnUpdate(self, elapsed)
         if (partyX == 0 and partyY == 0) then
             partyMemberFrame:Hide();
         else
-            partyX = partyX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size;
-            partyY = -partyY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size;
+            partyX = partyX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale()
+            partyY = -partyY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale()
             partyMemberFrame:SetPoint("CENTER", "WorldMapDetailFrame", "TOPLEFT", partyX, partyY);
             partyMemberFrame.name = name;
             partyMemberFrame.unit = nil;
+            partyMemberFrame.colorIcon:Hide();
+            partyMemberFrame.icon:Show();
             partyMemberFrame:Show();
         end
     end
@@ -409,8 +421,8 @@ function Magnify.WorldMapButton_OnUpdate(self, elapsed)
         if (flagX == 0 and flagY == 0) then
             flagFrame:Hide();
         else
-            flagX = flagX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size;
-            flagY = -flagY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size;
+            flagX = flagX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale()
+            flagY = -flagY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale()
             flagFrame:SetPoint("CENTER", "WorldMapDetailFrame", "TOPLEFT", flagX, flagY);
             local flagTexture = _G[flagFrameName .. "Texture"];
             flagTexture:SetTexture("Interface\\WorldStateFrame\\" .. flagToken);
@@ -427,8 +439,8 @@ function Magnify.WorldMapButton_OnUpdate(self, elapsed)
     if (corpseX == 0 and corpseY == 0) then
         WorldMapCorpse:Hide();
     else
-        corpseX = corpseX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size;
-        corpseY = -corpseY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale() * WORLDMAP_SETTINGS.size;
+        corpseX = corpseX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale();
+        corpseY = -corpseY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale()
 
         WorldMapCorpse:SetPoint("CENTER", "WorldMapDetailFrame", "TOPLEFT", corpseX, corpseY);
         WorldMapCorpse:Show();
@@ -439,10 +451,8 @@ function Magnify.WorldMapButton_OnUpdate(self, elapsed)
     if ((deathReleaseX == 0 and deathReleaseY == 0) or UnitIsGhost("player")) then
         WorldMapDeathRelease:Hide();
     else
-        deathReleaseX = deathReleaseX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale() *
-                                 WORLDMAP_SETTINGS.size;
-        deathReleaseY = -deathReleaseY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale() *
-                                 WORLDMAP_SETTINGS.size;
+        deathReleaseX = deathReleaseX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale();
+        deathReleaseY = -deathReleaseY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale();
 
         WorldMapDeathRelease:SetPoint("CENTER", "WorldMapDetailFrame", "TOPLEFT", deathReleaseX, deathReleaseY);
         WorldMapDeathRelease:Show();
@@ -468,10 +478,8 @@ function Magnify.WorldMapButton_OnUpdate(self, elapsed)
             GetBattlefieldVehicleInfo(i);
         if (vehicleX and isAlive and not isPlayer and VEHICLE_TEXTURES[vehicleType]) then
             local mapVehicleFrame = MAP_VEHICLES[i];
-            vehicleX = vehicleX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale() *
-                                   WORLDMAP_SETTINGS.size;
-            vehicleY = -vehicleY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale() *
-                                   WORLDMAP_SETTINGS.size;
+            vehicleX = vehicleX * WorldMapDetailFrame:GetWidth() * WorldMapDetailFrame:GetScale();
+            vehicleY = -vehicleY * WorldMapDetailFrame:GetHeight() * WorldMapDetailFrame:GetScale();
             mapVehicleFrame.texture:SetRotation(orientation);
             mapVehicleFrame.texture:SetTexture(WorldMap_GetVehicleTexture(vehicleType, isPossessed));
             mapVehicleFrame:SetPoint("CENTER", "WorldMapDetailFrame", "TOPLEFT", vehicleX, vehicleY);
@@ -587,6 +595,15 @@ function Magnify.RedrawSelectedQuest()
     end
 end
 
+function Magnify.CreateClassColorIcon(partyMemberFrame)
+    if (partyMemberFrame) then
+        partyMemberFrame.colorIcon = partyMemberFrame:CreateTexture(nil, "ARTWORK"); 
+        partyMemberFrame.colorIcon:SetAllPoints(partyMemberFrame);
+        partyMemberFrame.colorIcon:SetTexture('Interface\\AddOns\\' .. ADDON_NAME .. '\\assets\\WorldMapPlayer');
+        partyMemberFrame.icon:Hide();
+    end
+end
+
 function Magnify.OnFirstLoad()
     WorldMapScrollFrame:SetScrollChild(WorldMapDetailFrame)
     WorldMapScrollFrame:SetScript("OnMouseWheel", Magnify.WorldMapScrollFrame_OnMouseWheel)
@@ -657,6 +674,12 @@ function Magnify.OnFirstLoad()
         original_WorldMapFrame_OnShow(self)
         Magnify.SetupWorldMapFrame()
     end)
+
+    -- Create class color textures for party and raid frames
+    for i = 1, MAX_RAID_MEMBERS do
+        Magnify.CreateClassColorIcon(_G["WorldMapParty" .. i]);
+        Magnify.CreateClassColorIcon(_G["WorldMapRaid" .. i]);
+    end
 end
 
 function Magnify.OnEvent(self, event, addonName)
