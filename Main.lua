@@ -26,6 +26,7 @@ Magnify.PreviousState = {
 
 MagnifyOptions = {
     enablePersistZoom = false,
+    enableOldPartyIcons = false,
 }
 
 local function updatePointRelativeTo(frame, newRelativeFrame)
@@ -284,7 +285,7 @@ end
 
 function Magnify.ColorWorldMapPartyMemberFrame(partyMemberFrame, unit)
     local classColor = RAID_CLASS_COLORS[select(2, UnitClass(unit))];
-    if (classColor) then
+    if (classColor and not MagnifyOptions.enableOldPartyIcons) then
         partyMemberFrame.colorIcon:Show();
         partyMemberFrame.icon:Hide();
         partyMemberFrame.colorIcon:SetVertexColor(classColor.r, classColor.g, classColor.b, 1);
