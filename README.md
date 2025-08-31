@@ -23,4 +23,4 @@ Magnify is a World of Warcraft WotLK (3.3.5a) add-on which allows the user to zo
 - :white_check_mark: Mapster
 - :white_check_mark: MozzFullWorldMap
 - :white_check_mark: pfQuest
-- :white_check_mark: [Questie](https://github.com/esurm/Questie) (1.3.5a+)
+- :white_check_mark: Questie
