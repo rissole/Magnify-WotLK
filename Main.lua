@@ -213,7 +213,7 @@ function Magnify.SetupWorldMapFrame()
         WorldMapScrollFrame:SetPoint("TOPLEFT", WorldMapPositioningGuide, "TOP", -726, -99);
         WorldMapTrackQuest:SetPoint("BOTTOMLEFT", WorldMapPositioningGuide, "BOTTOMLEFT", 8, 4);
     elseif (WORLDMAP_SETTINGS.size == WORLDMAP_WINDOWED_SIZE) then
-        WorldMapScrollFrame:SetPoint("TOPLEFT", 37, -66);
+        WorldMapScrollFrame:SetPoint("TOPLEFT", WorldMapPositioningGuide, "TOPLEFT", 18, -43);
         WorldMapTrackQuest:SetPoint("BOTTOMLEFT", WorldMapPositioningGuide, "BOTTOMLEFT", 16, -9);
 
         WorldMapFrame:SetPoint("TOPLEFT", WorldMapScreenAnchor, 0, 0);
@@ -221,12 +221,12 @@ function Magnify.SetupWorldMapFrame()
         WorldMapFrame:SetMovable("true");
         WorldMapTitleButton:Show()
         WorldMapTitleButton:ClearAllPoints()
-        WorldMapTitleButton:SetPoint("TOPLEFT", WorldMapFrame, "TOPLEFT", 13, -13)
+        WorldMapTitleButton:SetPoint("TOPLEFT", WorldMapFrame, "TOPLEFT", 13, 0)
         WorldMapFrameTitle:Show()
         WorldMapFrameTitle:ClearAllPoints();
         WorldMapFrameTitle:SetPoint("CENTER", WorldMapTitleButton, "CENTER", 32, 0)
     else
-        WorldMapScrollFrame:SetPoint("TOPLEFT", WorldMapPositioningGuide, "TOP", -502, -69);
+        WorldMapScrollFrame:SetPoint("TOPLEFT", WorldMapPositioningGuide, "TOPLEFT", 11, -70.5);
         WorldMapTrackQuest:SetPoint("BOTTOMLEFT", WorldMapPositioningGuide, "BOTTOMLEFT", 16, -9);
     end
 
