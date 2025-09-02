@@ -2,11 +2,9 @@ local ADDON_NAME, Magnify = ...
 
 -- Constants
 Magnify.MIN_ZOOM = 1.0
-Magnify.MAX_ZOOM = 4.0
-Magnify.ZOOM_STEP = 0.2
 
 Magnify.MINIMODE_MIN_ZOOM = 1.0
-Magnify.MINIMODE_MAX_ZOOM = 10.0
+Magnify.MINIMODE_MAX_ZOOM = 3.0
 Magnify.MINIMODE_ZOOM_STEP = 0.1
 
 Magnify.WORLDMAP_POI_MIN_X = 12
@@ -27,6 +25,8 @@ Magnify.PreviousState = {
 MagnifyOptions = {
     enablePersistZoom = false,
     enableOldPartyIcons = false,
+    maxZoom = Magnify.MAXZOOM_DEFAULT,
+    zoomStep = Magnify.ZOOMSTEP_DEFAULT,
 }
 
 local function updatePointRelativeTo(frame, newRelativeFrame)
@@ -529,9 +529,9 @@ function Magnify.WorldMapScrollFrame_OnMouseWheel()
 
     local oldScale = WorldMapDetailFrame:GetScale()
     local newScale
-    newScale = oldScale + arg1 * Magnify.ZOOM_STEP
+    newScale = oldScale * (1.0 + arg1 * MagnifyOptions.zoomStep)
     newScale = max(Magnify.MIN_ZOOM, newScale)
-    newScale = min(Magnify.MAX_ZOOM, newScale)
+    newScale = min(MagnifyOptions.maxZoom, newScale)
 
     Magnify.SetDetailFrameScale(newScale)
 
@@ -606,6 +606,12 @@ function Magnify.CreateClassColorIcon(partyMemberFrame)
 end
 
 function Magnify.OnFirstLoad()
+    -- Make sure all settings got initalized
+    MagnifyOptions.enablePersistZoom = MagnifyOptions.enablePersistZoom or Magnify.ENABLEPERSISTZOOM_DEFAULT
+    MagnifyOptions.enableOldPartyIcons = MagnifyOptions.enableOldPartyIcons or Magnify.ENABLEOLDPARTYICONS_DEFAULT
+    MagnifyOptions.maxZoom = MagnifyOptions.maxZoom or Magnify.MAXZOOM_DEFAULT
+    MagnifyOptions.zoomStep = MagnifyOptions.zoomStep or Magnify.ZOOMSTEP_DEFAULT
+
     WorldMapScrollFrame:SetScrollChild(WorldMapDetailFrame)
     WorldMapScrollFrame:SetScript("OnMouseWheel", Magnify.WorldMapScrollFrame_OnMouseWheel)
     WorldMapButton:SetScript("OnMouseDown", Magnify.WorldMapButton_OnMouseDown)
