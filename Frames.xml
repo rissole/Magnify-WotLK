@@ -10,5 +10,20 @@
         </Anchors>
     </ScrollFrame>
 
+    <!-- Templates -->
+    <Slider name="MagnifySliderTemplate" inherits="OptionsSliderTemplate" virtual="true">
+        <Size x="250" y="17"/>
+        <Layers>
+            <Layer level="ARTWORK">
+                <FontString name="$parentCurrentValueText" inherits="GameFontNormalSmall">
+                    <Anchors>
+                        <Anchor point="BOTTOM">
+                            <Offset x="0" y="-8"/>
+                        </Anchor>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+    </Slider>
 
 </Ui>
