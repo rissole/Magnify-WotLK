@@ -67,6 +67,285 @@ local function resizePOI(poiButton)
     end
 end
 
+local function isFrameOnWorldMap(frame)
+    local current = frame
+    while (current) do
+        if (current == WorldMapFrame or current == WorldMapScrollFrame or current == WorldMapDetailFrame or
+            current == WorldMapButton or current == WorldMapPOIFrame) then
+            return true
+        end
+        if (not current.GetParent) then
+            break
+        end
+        local nextParent = current:GetParent()
+        if (nextParent == current) then
+            break
+        end
+        current = nextParent
+    end
+    return false
+end
+
+local function isCloseEnough(numberA, numberB, epsilon)
+    return math.abs((numberA or 0) - (numberB or 0)) <= (epsilon or 0.01)
+end
+
+local function isCornerPoint(point)
+    return point == "TOPLEFT" or point == "TOPRIGHT" or point == "BOTTOMLEFT" or point == "BOTTOMRIGHT"
+end
+
+local function isQuestieMapCornerButton(frameObject, point, relativeFrame, relativePoint, offsetX, offsetY)
+    if (frameObject.__magnifyQuestieCornerLocked) then
+        return true
+    end
+    if (relativeFrame ~= WorldMapButton) then
+        return false
+    end
+    if (not isCornerPoint(point) or not isCornerPoint(relativePoint)) then
+        return false
+    end
+    if (type(offsetX) ~= "number" or type(offsetY) ~= "number") then
+        return false
+    end
+    return math.abs(offsetX) <= 40 and math.abs(offsetY) <= 40
+end
+
+local function lockQuestieMapCornerButton(frameObject, point, relativePoint, offsetX, offsetY, detailFrameScale)
+    if (isCloseEnough(detailFrameScale, 1, 0.02)) then
+        frameObject.__magnifyQuestieCornerBaseX = offsetX
+        frameObject.__magnifyQuestieCornerBaseY = offsetY
+    elseif (not frameObject.__magnifyQuestieCornerBaseX or not frameObject.__magnifyQuestieCornerBaseY) then
+        frameObject.__magnifyQuestieCornerBaseX = offsetX
+        frameObject.__magnifyQuestieCornerBaseY = offsetY
+    end
+
+    frameObject.__magnifyQuestieCornerPoint = frameObject.__magnifyQuestieCornerPoint or point
+    frameObject.__magnifyQuestieCornerRelativePoint = frameObject.__magnifyQuestieCornerRelativePoint or relativePoint
+    frameObject.__magnifyQuestieCornerLocked = true
+
+    local lockPoint = frameObject.__magnifyQuestieCornerPoint or point
+    local lockRelativePoint = frameObject.__magnifyQuestieCornerRelativePoint or relativePoint
+    local lockX = frameObject.__magnifyQuestieCornerBaseX or offsetX
+    local lockY = frameObject.__magnifyQuestieCornerBaseY or offsetY
+    local _, currentRelativeFrame, currentRelativePoint, currentX, currentY = frameObject:GetPoint(1)
+
+    if (frameObject:GetParent() ~= WorldMapScrollFrame or currentRelativeFrame ~= WorldMapScrollFrame or
+        currentRelativePoint ~= lockRelativePoint or not isCloseEnough(currentX, lockX, 0.05) or
+        not isCloseEnough(currentY, lockY, 0.05)) then
+        frameObject:SetParent(WorldMapScrollFrame)
+        frameObject:ClearAllPoints()
+        frameObject:SetPoint(lockPoint, WorldMapScrollFrame, lockRelativePoint, lockX, lockY)
+    end
+    frameObject:SetScale(1)
+end
+
+local function getAnchorPointCoordinates(point, width, height)
+    if (point == "TOPLEFT") then
+        return 0, 0
+    elseif (point == "TOP") then
+        return width / 2, 0
+    elseif (point == "TOPRIGHT") then
+        return width, 0
+    elseif (point == "LEFT") then
+        return 0, -height / 2
+    elseif (point == "CENTER") then
+        return width / 2, -height / 2
+    elseif (point == "RIGHT") then
+        return width, -height / 2
+    elseif (point == "BOTTOMLEFT") then
+        return 0, -height
+    elseif (point == "BOTTOM") then
+        return width / 2, -height
+    elseif (point == "BOTTOMRIGHT") then
+        return width, -height
+    end
+
+    return 0, 0
+end
+
+local function clamp(number, minValue, maxValue)
+    if (number < minValue) then
+        return minValue
+    elseif (number > maxValue) then
+        return maxValue
+    end
+    return number
+end
+
+local function getQuestieVisibleBounds(anchorFrame)
+    local left = 0
+    local right = anchorFrame:GetWidth() or 0
+    local top = 0
+    local bottom = -(anchorFrame:GetHeight() or 0)
+
+    if (anchorFrame == WorldMapButton or anchorFrame == WorldMapDetailFrame) then
+        local detailFrameScale = WorldMapDetailFrame:GetScale()
+        if (detailFrameScale and detailFrameScale > 0) then
+            local scrollLeft = WorldMapScrollFrame:GetHorizontalScroll() or 0
+            local scrollTop = WorldMapScrollFrame:GetVerticalScroll() or 0
+            local visibleWidth = WorldMapScrollFrame:GetWidth() or 0
+            local visibleHeight = WorldMapScrollFrame:GetHeight() or 0
+
+            left = scrollLeft * detailFrameScale
+            right = left + visibleWidth
+            top = -(scrollTop * detailFrameScale)
+            bottom = top - visibleHeight
+        end
+    end
+
+    return left, right, bottom, top
+end
+
+local function clampQuestieMapPinOffset(frameObject, anchorFrame, point, relativePoint, offsetX, offsetY)
+    if (not frameObject or not anchorFrame or not point or not relativePoint) then
+        return offsetX, offsetY
+    end
+
+    if (not anchorFrame.GetWidth or not anchorFrame.GetHeight or not frameObject.GetWidth or not frameObject.GetHeight) then
+        return offsetX, offsetY
+    end
+
+    local anchorWidth = anchorFrame:GetWidth() or 0
+    local anchorHeight = anchorFrame:GetHeight() or 0
+    if (anchorWidth <= 0 or anchorHeight <= 0) then
+        return offsetX, offsetY
+    end
+
+    local frameWidth = frameObject:GetWidth() or 0
+    local frameHeight = frameObject:GetHeight() or 0
+    local relativePointX, relativePointY = getAnchorPointCoordinates(relativePoint, anchorWidth, anchorHeight)
+    local pointX, pointY = getAnchorPointCoordinates(point, frameWidth, frameHeight)
+
+    local absoluteX = relativePointX + offsetX
+    local absoluteY = relativePointY + offsetY
+
+    local left, right, bottom, top = getQuestieVisibleBounds(anchorFrame)
+    local minX = left + pointX
+    local maxX = right - (frameWidth - pointX)
+    if (maxX < minX) then
+        minX = (left + right) / 2
+        maxX = minX
+    end
+
+    local minY = bottom + frameHeight + pointY
+    local maxY = top + pointY
+    if (maxY < minY) then
+        minY = (bottom + top) / 2
+        maxY = minY
+    end
+
+    local clampedAbsoluteX = clamp(absoluteX, minX, maxX)
+    local clampedAbsoluteY = clamp(absoluteY, minY, maxY)
+
+    return clampedAbsoluteX - relativePointX, clampedAbsoluteY - relativePointY
+end
+
+function Magnify.SetQuestieWorldMapPinsVisible(isVisible)
+    if (not Magnify.questieWorldMapPins) then
+        return
+    end
+
+    for frameObject in pairs(Magnify.questieWorldMapPins) do
+        if (frameObject and frameObject.IsShown and frameObject.Show and frameObject.Hide) then
+            if (isVisible) then
+                if (frameObject.__magnifyQuestieTemporarilyHidden) then
+                    frameObject:Show()
+                    frameObject.__magnifyQuestieTemporarilyHidden = nil
+                end
+            elseif (frameObject:IsShown()) then
+                frameObject.__magnifyQuestieTemporarilyHidden = true
+                frameObject:Hide()
+            end
+        end
+    end
+end
+
+function Magnify.SyncQuestieWorldMapPins(forceRescan)
+    if (not WorldMapFrame:IsShown()) then
+        return
+    end
+
+    if (not Magnify.questieWorldMapPins) then
+        Magnify.questieWorldMapPins = {}
+    end
+
+    local now = GetTime()
+    if (forceRescan or not Magnify.questieLastScan or (now - Magnify.questieLastScan) > 0.2) then
+        Magnify.questieWorldMapPins = {}
+        Magnify.questieLastScan = now
+
+        for frameName, frameObject in pairs(_G) do
+            local frameType = type(frameObject)
+            if (type(frameName) == "string" and (frameType == "table" or frameType == "userdata") and
+                string.find(frameName, "Questie") and
+                frameObject.GetParent and frameObject.SetScale and isFrameOnWorldMap(frameObject)) then
+                Magnify.questieWorldMapPins[frameObject] = true
+            end
+        end
+    end
+
+    if (not forceRescan and Magnify.questieLastApply and (now - Magnify.questieLastApply) < 0.05) then
+        return
+    end
+    Magnify.questieLastApply = now
+
+    local detailFrameScale = WorldMapDetailFrame:GetScale()
+    local detailFrameEffectiveScale = WorldMapDetailFrame:GetEffectiveScale()
+    for frameObject in pairs(Magnify.questieWorldMapPins) do
+        if (frameObject and frameObject.GetParent and frameObject.GetPoint and isFrameOnWorldMap(frameObject)) then
+            local point, relativeFrame, relativePoint, offsetX, offsetY = frameObject:GetPoint(1)
+            local anchorFrame = relativeFrame or frameObject:GetParent() or WorldMapDetailFrame
+            local anchorEffectiveScale = detailFrameEffectiveScale
+            if (anchorFrame.GetEffectiveScale) then
+                anchorEffectiveScale = anchorFrame:GetEffectiveScale()
+            end
+
+            local handledCornerButton = false
+            if (point and relativePoint and isQuestieMapCornerButton(frameObject, point, relativeFrame, relativePoint, offsetX, offsetY)) then
+                lockQuestieMapCornerButton(frameObject, point, relativePoint, offsetX, offsetY, detailFrameScale)
+                handledCornerButton = true
+            end
+
+            if (not handledCornerButton and point and type(offsetX) == "number" and type(offsetY) == "number" and
+                anchorEffectiveScale and anchorEffectiveScale > 0) then
+                local correctionFactor = detailFrameScale * (detailFrameEffectiveScale / anchorEffectiveScale)
+                local rawOffsetX = offsetX
+                local rawOffsetY = offsetY
+
+                if (frameObject.__magnifyQuestieAdjusted and
+                    isCloseEnough(offsetX, frameObject.__magnifyQuestieAdjustedX, 0.05) and
+                    isCloseEnough(offsetY, frameObject.__magnifyQuestieAdjustedY, 0.05)) then
+                    rawOffsetX = frameObject.__magnifyQuestieRawX or rawOffsetX
+                    rawOffsetY = frameObject.__magnifyQuestieRawY or rawOffsetY
+                end
+
+                local adjustedOffsetX = rawOffsetX * correctionFactor
+                local adjustedOffsetY = rawOffsetY * correctionFactor
+                adjustedOffsetX, adjustedOffsetY =
+                    clampQuestieMapPinOffset(frameObject, anchorFrame, point, relativePoint, adjustedOffsetX, adjustedOffsetY)
+
+                if (not isCloseEnough(offsetX, adjustedOffsetX, 0.05) or not isCloseEnough(offsetY, adjustedOffsetY, 0.05)) then
+                    frameObject:ClearAllPoints()
+                    frameObject:SetPoint(point, relativeFrame, relativePoint, adjustedOffsetX, adjustedOffsetY)
+                    offsetX = adjustedOffsetX
+                    offsetY = adjustedOffsetY
+                end
+
+                frameObject.__magnifyQuestieAdjusted = true
+                frameObject.__magnifyQuestieRawX = rawOffsetX
+                frameObject.__magnifyQuestieRawY = rawOffsetY
+                frameObject.__magnifyQuestieAdjustedX = offsetX
+                frameObject.__magnifyQuestieAdjustedY = offsetY
+                frameObject.__magnifyQuestieLastScale = detailFrameScale
+            end
+        else
+            Magnify.questieWorldMapPins[frameObject] = nil
+        end
+    end
+
+    Magnify.SetQuestieWorldMapPinsVisible(true)
+end
+
 function Magnify.PersistMapScrollAndPan()
     Magnify.PreviousState.panX = WorldMapScrollFrame:GetHorizontalScroll()
     Magnify.PreviousState.panY = WorldMapScrollFrame:GetVerticalScroll()
@@ -76,6 +355,7 @@ end
 
 function Magnify.AfterScrollOrPan()
     Magnify.PersistMapScrollAndPan()
+    Magnify.SyncQuestieWorldMapPins(false)
     if (WORLDMAP_SETTINGS.selectedQuest) then
         WorldMapBlobFrame:DrawQuestBlob(WORLDMAP_SETTINGS.selectedQuestId, false);
         WorldMapBlobFrame:DrawQuestBlob(WORLDMAP_SETTINGS.selectedQuestId, true);
@@ -142,6 +422,7 @@ function Magnify.SetDetailFrameScale(num)
     if (WorldMapFrame_UpdateQuests() > 0) then
         Magnify.RedrawSelectedQuest() -- Calling Magnify method
     end
+    Magnify.SyncQuestieWorldMapPins(true)
 end
 
 function Magnify.GetElvUI()
@@ -267,6 +548,8 @@ function Magnify.SetupWorldMapFrame()
     if (Magnify.GetElvUI()) then -- Calling Magnify method
         Magnify.ElvUI_SetupWorldMapFrame() -- Calling Magnify method
     end
+
+    Magnify.SyncQuestieWorldMapPins(true)
 end
 
 function Magnify.WorldMapScrollFrame_OnPan(cursorX, cursorY)
@@ -510,6 +793,8 @@ function Magnify.WorldMapButton_OnUpdate(self, elapsed)
     if WorldMapScrollFrame.panning then
         Magnify.WorldMapScrollFrame_OnPan(GetCursorPosition()) -- Calling Magnify method
     end
+
+    Magnify.SyncQuestieWorldMapPins(false)
 end
 
 function Magnify.WorldMapScrollFrame_OnMouseWheel()
@@ -540,6 +825,7 @@ function Magnify.WorldMapScrollFrame_OnMouseWheel()
     newScale = max(Magnify.MIN_ZOOM, newScale)
     newScale = min(MagnifyOptions.maxZoom, newScale)
 
+    Magnify.SetQuestieWorldMapPinsVisible(false)
     Magnify.SetDetailFrameScale(newScale)
 
     this.maxX = ((WorldMapDetailFrame:GetWidth() * newScale) - this:GetWidth()) / newScale
